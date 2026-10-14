@@ -47,6 +47,7 @@ def main():
     ap.add_argument("--source", default="sim", choices=["sim", "z24"])
     ap.add_argument("--z24-dir", default=None)
     ap.add_argument("--z24-setup", default="0")
+    ap.add_argument("--z24-channels", type=int, nargs="+", default=None)
     ap.add_argument("--model", default="ridge", choices=["mlp", "ridge"],
                     help="ridge: trains in under a minute and localises damage sharply (recommended for the live demo)")
     ap.add_argument("--rate", type=float, default=4.0)
@@ -64,6 +65,8 @@ def main():
                "--z24-setup", str(args.z24_setup)]
         if args.z24_dir:
             cmd += ["--z24-dir", args.z24_dir]
+        if args.z24_channels:
+            cmd += ["--z24-channels", *map(str, args.z24_channels)]
         subprocess.run(cmd, check=True, cwd=ROOT)
 
     env = dict(os.environ, SHM_BROKER=args.broker, SHM_PORT=str(args.port), SHM_WS_PORT=str(args.ws_port),
@@ -87,6 +90,8 @@ def main():
              "--broker", args.broker, "--port", str(args.port), "--z24-setup", str(args.z24_setup)]
     if args.z24_dir:
         nodes += ["--z24-dir", args.z24_dir]
+    if args.z24_channels:
+        nodes += ["--z24-channels", *map(str, args.z24_channels)]
     children.append(Child("virtual sensor nodes", nodes, env))
     if args.wokwi_id:
         children.append(Child("Wokwi relay", [PY, "iot/wokwi_relay.py", "--wokwi-id", args.wokwi_id,

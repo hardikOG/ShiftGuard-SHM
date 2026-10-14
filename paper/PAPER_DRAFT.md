@@ -3,8 +3,8 @@
 *Hardik Grover, Advait Anand, Akash Kumar, Yograj, [member 5] — Dept. of CTECH, SRM Institute of Science and Technology, Kattankulathur. Supervisor: Dr. P. Saravanan*
 
 > Draft for Review-2. Results come from `results/results.md` and `results_ridge/results.md` (3 seeds),
-> regenerated after the per-sensor detectors were switched to mask-and-impute scores (Section IV). Numbers marked **[Z24]**
-> must be filled in after running on the real Z24 data.
+> regenerated after the per-sensor detectors were switched to mask-and-impute scores (Section IV). Table III uses the
+> real Z24 recordings (`results_z24_ridge/`; the MLP variant is in `results_z24/`).
 
 ---
 
@@ -37,10 +37,13 @@ Results:
 - **False alarms:** over a simulated monitoring year with a record cold snap, five types of IoT sensor
   fault and progressive damage, ShiftGuard reduces false-alarm episodes from 315 to about 8 (and false-alarm hours
   from 347 to 26) compared with a per-window conformal autoencoder baseline.
-- **Detection:** it detects moderate damage within 4 h.
+- **Detection:** it detects moderate damage within 4 h in simulation. On real Z24 recordings it detects
+  severe damage but misses the moderate stage (Section VI).
 - **Sensor faults:** it attributes 94 % of sensor-fault hours to the correct sensor, and labels none of
   them as damage.
 - **Cold snap:** it never labels the cold snap as damage.
+- **Real data:** on the Z24 bridge recordings it keeps false alarms about 40× below the baseline
+  (10 vs 391 hours).
 
 **Index Terms**: structural health monitoring, AIoT, conformal prediction, test martingales, e-values,
 sensor fault isolation, environmental variability, Z24 bridge.
@@ -257,7 +260,48 @@ Figures to include:
 - **Fig. 4** (`ablation.png`)
 - **Fig. 5** (`localisation.png`)
 
-**[Z24]** Repeat Table I with `--source z24` and add it as Table II.
+**Table III.** The same protocol on the real Z24 recordings (ridge model, mean of 3 seeds).
+
+| Method | False-alarm h | False-alarm episodes | Damage delay (h) | Damage recall | Faults correctly attributed | Faults called damage | Cold snap called damage |
+|---|---|---|---|---|---|---|---|
+| ShiftGuard (proposed) | 10.3 | 5.3 | 494 | 23.5% | 46.5% | 0.3% | 0.0% |
+| Per-window AE + conformal 5% | 391.3 | 362.7 | 70.7 | 10.4% | 0.0% | 23.0% | 16.5% |
+| Per-window AE + conformal 0.1% | 12.7 | 12.3 | 94.3 | 1.5% | 0.0% | 12.6% | 2.4% |
+| Ablation: per-window conformal 5% (no e-detector) | 367.3 | 343.3 | 68 | 16.0% | 0.0% | 8.6% | 9.7% |
+| Ablation: no sensor masking | 16.7 | 7 | 37 | 30.6% | 4.8% | 41.8% | 0.0% |
+| Ablation: global (not temperature-localised) calibration | 11.7 | 6.7 | 493.3 | 23.6% | 45.7% | 2.0% | 0.0% |
+| Ablation: no temperature conditioning | 10.3 | 5.3 | 494.3 | 23.3% | 46.2% | 0.3% | 0.0% |
+| Ablation: no environment monitor | 10.7 | 5.7 | 492.7 | 25.4% | 47.9% | 0.3% | 3.0% |
+
+**Z24 setup.** The processed Z24 progressive-damage data has 1530 recordings
+(17 scenarios × 9 sensor setups × 10 segments, 27 channels, 60 s at 100 Hz):
+- Healthy: scenarios 1–2. Moderate damage: scenarios 3–7 and 9–11. Severe damage: scenarios 12–17.
+  Scenario 8 (the new reference after settlement) is excluded.
+- The cross-sensor model needs a fixed sensor layout. With a single setup there are only 20 healthy
+  recordings, and calibration and test windows then come from different recordings, which breaks
+  exchangeability: ShiftGuard raised 795 false-alarm hours in a 120-day pilot run.
+- We therefore use the 8 channels whose RMS level is as stable *between* setups as *within* a setup
+  (channels 1, 2, 3, 9, 13, 17, 18, 19). These behave like the fixed reference sensors of the Z24
+  campaign, so all 180 healthy recordings can be used. The selection uses healthy recordings only.
+- Healthy recordings are split 50 / 25 / 25 % into fitting, calibration and the monitored stream. Damaged
+  recordings are split 40 / 20 / 40 % into severity training, severity calibration and the stream.
+
+**Z24 reading.**
+- **False alarms carry over from simulation to real data.** 10.3 false-alarm hours (5.3 episodes) against 391
+  hours (363 episodes) for the per-window baseline. The healthy-only year gives 0.33 false-alarm episodes,
+  against 462 for the baseline.
+- **Weather and sensor faults are still not mistaken for damage.** 0.3 % of fault hours and 0 % of cold-snap
+  hours are labelled damage, against 23 % and 16.5 % for the baseline.
+- **Damage detection is the weak point on Z24.** Recall is 23.5 % and the first damage alarm comes after
+  about 494 h. That is 62 h into the severe stage: **the moderate stage (pier settlement, spalling,
+  landslide) is missed on these channels**. The baseline is no better (10.4 % recall at α = 5 %). The early
+  Z24 damage scenarios change the response of the shared reference channels very little. Using the full
+  setup-specific layouts, or modal features instead of band powers, is future work.
+- **Fault attribution to the correct sensor drops to 46.5 %** (95.7 % in simulation), although faults are
+  almost never called damage. Real recordings have weaker cross-sensor redundancy than the 8-DOF model,
+  so a fault on one channel is more often blamed on a neighbour.
+- **Severity sets** keep their coverage guarantee (92.4 % against a 90 % target) but are less sharp
+  (average set size 1.46, against 1.0 in simulation).
 
 ## VII. Discussion and Limitations
 - **Accumulating evidence is what removes false alarms.** The ablation that keeps ShiftGuard's score but
@@ -271,6 +315,9 @@ Figures to include:
   sensors up to half the network.)
 - **Simulated temperature effect.** The Z24 temperature effect is simulated (the progressive-damage test
   has no temperature channel). Long-term Z24 monitoring data would allow a fully measured evaluation.
+- **Z24 damage sensitivity.** On the 8 shared reference channels, moderate Z24 damage is not detected
+  (Table III). The alarm guarantee and the attribution of faults and weather hold on real data, but
+  damage sensitivity depends on sensor placement and features.
 - **Model choice.** The linear (ridge) variant localises damage more sharply. The neural variant is
   the self-supervised masked model. Both give the same alarm behaviour, so the framework is
   model-agnostic.

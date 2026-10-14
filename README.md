@@ -197,7 +197,7 @@ With no internet, the twin's **virtual DHT22** slider does the same thing locall
 
 ## Step 7: Use the real Z24 bridge data
 
-1. Download `inputs.npy` (about 2 GB) and `labels.npy` from
+1. Download `inputs.npy` (about 1 GB) and `labels.npy` from
    https://huggingface.co/datasets/thanglexuan/Z24-dataset-processed into `data/z24/`.
 2. Check the files and their row order:
    ```bash
@@ -205,10 +205,19 @@ With no internet, the twin's **virtual DHT22** slider does the same thing locall
    ```
 3. Run the experiment and the live demo on Z24:
    ```bash
-   python scripts/run_experiment.py --source z24 --z24-dir data/z24 --z24-setup 0
-   python scripts/train_monitor.py  --source z24 --z24-dir data/z24
-   python run_demo.py --source z24 --z24-dir data/z24
+   python scripts/run_experiment.py --source z24 --z24-dir data/z24 --z24-setup all --z24-channels 1 3 9 17 18 19 2 13 --model ridge --seeds 0 1 2 --out results_z24_ridge
+   python run_demo.py --source z24 --z24-dir data/z24 --z24-setup all --z24-channels 1 3 9 17 18 19 2 13
    ```
+   The paper's Table III comes from the first command.
+
+Why `--z24-setup all` with 8 channels: a single setup has only 20 healthy recordings, so calibration and
+test come from different recordings and the false-alarm guarantee breaks (a pilot run gave 795 false-alarm
+hours). Channels 1, 2, 3, 9, 13, 17, 18 and 19 vary as little *between* the 9 setups as *within* one (they
+act like Z24's fixed reference sensors), so all 180 healthy recordings can be used.
+
+**Results on Z24 (ridge, 3 seeds):** false alarms stay far below the baseline (10 vs 391 hours), and faults
+and cold are almost never called damage. However, moderate damage is **not** detected on these channels,
+only severe damage is (see `results_z24_ridge/results.md`).
 
 How Z24 is used:
 - **Healthy data:** scenarios 1–2.

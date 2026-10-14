@@ -121,6 +121,7 @@ def main():
     ap.add_argument("--source", default="sim", choices=["sim", "z24"])
     ap.add_argument("--z24-dir", default=None)
     ap.add_argument("--z24-setup", default="0")
+    ap.add_argument("--z24-channels", type=int, nargs="+", default=None)
     ap.add_argument("--rate", type=float, default=4.0, help="windows (bridge-hours) per real second")
     ap.add_argument("--start-day", type=float, default=60.0, help="day of year the stream starts")
     ap.add_argument("--hours", type=int, default=0, help="stop after this many windows (0 = run forever)")
@@ -130,7 +131,7 @@ def main():
     from shiftguard.sources import make_source
     cfg = Config()
     setup = args.z24_setup if args.z24_setup == "all" else int(args.z24_setup)
-    src = make_source(cfg, args.source, args.z24_dir, setup)
+    src = make_source(cfg, args.source, args.z24_dir, setup, args.z24_channels)
     rng = np.random.default_rng(args.seed)
     temps = temperature_profile(24 * 365 * 3, rng, start_hour=int(args.start_day * 24))
     st = LiveState(float(np.clip(args.rate, MIN_RATE, MAX_RATE)), cfg.n_sensors)
