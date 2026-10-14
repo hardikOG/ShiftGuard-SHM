@@ -4,7 +4,7 @@
 
 > Draft for Review-2. Results come from `results/results.md` and `results_ridge/results.md` (3 seeds),
 > regenerated after the per-sensor detectors were switched to mask-and-impute scores (Section IV). Table III uses the
-> real Z24 recordings (`results_z24_ridge/`; the MLP variant is in `results_z24/`).
+> real Z24 recordings (`results_z24_ridge/` and `results_z24/`).
 
 ---
 
@@ -272,6 +272,13 @@ Figures to include:
 | Ablation: global (not temperature-localised) calibration | 11.7 | 6.7 | 493.3 | 23.6% | 45.7% | 2.0% | 0.0% |
 | Ablation: no temperature conditioning | 10.3 | 5.3 | 494.3 | 23.3% | 46.2% | 0.3% | 0.0% |
 | Ablation: no environment monitor | 10.7 | 5.7 | 492.7 | 25.4% | 47.9% | 0.3% | 3.0% |
+
+With the masked-sensor MLP instead of ridge (`results_z24/`, 3 seeds), ShiftGuard gives:
+
+| ShiftGuard (MLP) | 12.7 | 5.7 | 494 | 27.3% | 44.7% | 0.0% | 0.0% |
+
+That is 12.7 false-alarm hours, 27.3 % damage recall, and 2.67 false-alarm episodes in the healthy-only
+year. The severity-set coverage is 90.4 %. The conclusions are the same as for ridge.
 
 **Z24 setup.** The processed Z24 progressive-damage data has 1530 recordings
 (17 scenarios × 9 sensor setups × 10 segments, 27 channels, 60 s at 100 Hz):
