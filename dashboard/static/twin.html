@@ -6,137 +6,83 @@
 <title>ShiftGuard Digital Twin</title>
 <link rel="icon" href="data:,">
 <style>
-  :root {
-    --bg: #eef1f4; --grid: #dde2e8; --panel: #ffffff; --ink: #14181d; --ink2: #5b6470; --line: #d5dae0;
-    --ok: #18a058; --env: #2a78d6; --fault: #eb6834; --dmg: #d03b3b; --deck: #6d7680; --deck2: #4a525b;
-    --water: #b9d6ee; --ground: #c9b48f; --sky: #f6f8fa;
-  }
+  :root { --bg: #f4f5f7; --card: #fff; --ink: #16191d; --muted: #6b7380; --line: #e2e5e9;
+          --ok: #18a058; --env: #2a78d6; --fault: #eb6834; --dmg: #d03b3b; }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  header { display: flex; align-items: center; gap: 14px; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
-  header h1 { font-size: 15px; margin: 0; font-weight: 650; }
-  .pill { padding: 3px 9px; border-radius: 999px; background: #eef1f4; color: var(--ink2); font-size: 12px; white-space: nowrap; }
-  .pill.live { background: #e3f5ea; color: #0f7a3f; }
-  .pill.down { background: #fde8e8; color: #a12b2b; }
-  .spacer { flex: 1; }
-  button, select { font: inherit; border: 1px solid var(--line); background: #fff; border-radius: 7px; padding: 6px 10px; cursor: pointer; color: var(--ink); }
-  button:hover { border-color: #9aa4ae; }
-  button.danger { color: var(--dmg); } button.envb { color: var(--env); } button.faultb { color: var(--fault); }
-  main { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 12px; padding: 12px 16px; }
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
-  .card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink2); margin: 0; padding: 10px 12px 6px; font-weight: 600; }
-  #scene { width: 100%; display: block; background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px); background-size: 20px 20px; border-radius: 10px 10px 0 0; }
-  .toolbar { display: flex; gap: 6px; flex-wrap: wrap; padding: 10px 12px; border-top: 1px solid var(--line); align-items: center; }
-  .toolbar .sep { width: 1px; height: 22px; background: var(--line); margin: 0 4px; }
-  #status { margin: 0 12px 10px; padding: 12px; border-radius: 8px; border-left: 6px solid var(--ok); background: #f4f6f8; }
-  #status b { font-size: 16px; display: block; }
-  #status small { color: var(--ink2); }
-  .meter { display: grid; grid-template-columns: 74px 1fr 46px; align-items: center; gap: 8px; padding: 3px 12px; font-size: 12px; }
-  .bar { height: 9px; background: #edf0f3; border-radius: 5px; position: relative; overflow: hidden; }
-  .bar > i { position: absolute; inset: 0 auto 0 0; width: 0; border-radius: 5px; transition: width .25s; }
-  .bar::after { content: ""; position: absolute; left: 83.3%; top: -2px; bottom: -2px; width: 2px; background: var(--ink); opacity: .55; }
-  .kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 6px 12px 12px; }
-  .kpi { background: #f4f6f8; border-radius: 8px; padding: 8px 10px; }
-  .kpi span { display: block; color: var(--ink2); font-size: 11px; }
-  .kpi b { font-size: 18px; }
-  #alerts { list-style: none; margin: 0; padding: 0 12px 12px; max-height: 220px; overflow: auto; }
-  #alerts li { border-left: 3px solid var(--line); padding: 4px 8px; margin-bottom: 6px; font-size: 12px; color: var(--ink2); }
-  #alerts li b { color: var(--ink); }
-  .scope { display: grid; grid-template-columns: minmax(0, 1fr); }
-  #scopeCanvas { width: 100%; height: 150px; display: block; }
-  .scopehead { display: flex; align-items: center; gap: 8px; padding: 10px 12px 0; flex-wrap: wrap; }
-  .scopehead h2 { padding: 0; }
-  #menu { position: fixed; display: none; background: #fff; border: 1px solid var(--line); border-radius: 9px; box-shadow: 0 8px 28px rgba(0,0,0,.14); padding: 6px; z-index: 10; min-width: 190px; }
-  #menu div.t { font-weight: 650; padding: 6px 8px; }
-  #menu button { display: block; width: 100%; text-align: left; border: 0; padding: 6px 8px; border-radius: 6px; }
-  #menu button:hover { background: #f1f3f5; }
-  #overlay { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(238,241,244,.82); font-size: 15px; color: var(--ink2); border-radius: 10px; text-align: center; padding: 20px; }
-  .scenewrap { position: relative; }
-  label.chk { display: inline-flex; gap: 5px; align-items: center; color: var(--ink2); }
-  input[type=range] { vertical-align: middle; }
-  .legend { display: flex; gap: 12px; padding: 0 12px 10px; color: var(--ink2); font-size: 11px; flex-wrap: wrap; }
-  .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
-  @media (max-width: 900px) { main { grid-template-columns: 1fr; padding: 10px; } }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 16px; }
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+  .top h1 { font-size: 18px; margin: 0; font-weight: 650; }
+  .top small { color: var(--muted); }
+  #verdict { display: flex; align-items: center; gap: 14px; background: var(--card); border-radius: 14px; padding: 16px 20px;
+             border-left: 10px solid var(--ok); margin-bottom: 12px; }
+  #verdict .icon { font-size: 34px; }
+  #verdict b { font-size: 22px; display: block; }
+  #verdict span { color: var(--muted); }
+  .card { background: var(--card); border-radius: 14px; overflow: hidden; }
+  #scene { width: 100%; display: block; background: #fbfcfd; }
+  .hint { text-align: center; color: var(--muted); font-size: 13px; padding: 6px 0 2px; }
+  .actions { display: flex; gap: 10px; padding: 12px 16px 16px; flex-wrap: wrap; justify-content: center; }
+  button { font: inherit; border: 1px solid var(--line); background: #fff; border-radius: 10px; padding: 10px 16px; cursor: pointer; color: var(--ink); }
+  button:hover { background: #f1f3f5; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 12px; }
+  .stat { background: var(--card); border-radius: 14px; padding: 12px 16px; }
+  .stat span { display: block; color: var(--muted); font-size: 13px; }
+  .stat b { font-size: 22px; }
+  #lastAlert { background: var(--card); border-radius: 14px; padding: 12px 16px; margin-top: 12px; color: var(--muted); font-size: 14px; }
+  details { margin-top: 12px; background: var(--card); border-radius: 14px; padding: 10px 16px; }
+  summary { cursor: pointer; color: var(--muted); }
+  .more { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; padding: 10px 0 4px; font-size: 14px; }
+  #scope { width: 100%; height: 110px; display: block; border-radius: 8px; margin-top: 8px; }
+  #menu { position: fixed; display: none; background: #fff; border: 1px solid var(--line); border-radius: 12px;
+          box-shadow: 0 10px 30px rgba(0,0,0,.15); padding: 6px; z-index: 10; min-width: 200px; }
+  #menu div { font-weight: 650; padding: 6px 10px; }
+  #menu button { display: block; width: 100%; text-align: left; border: 0; padding: 8px 10px; }
+  #offline { display: none; text-align: center; padding: 30px; color: var(--muted); }
+  @media (max-width: 700px) { .stats { grid-template-columns: 1fr 1fr; } }
 </style>
 </head>
 <body>
-<header>
-  <h1>🌉 ShiftGuard Digital Twin</h1>
-  <span class="pill" id="conn">connecting…</span>
-  <span class="pill" id="clock">bridge hour –</span>
-  <span class="pill" id="lat">edge – ms/window</span>
-  <span class="spacer"></span>
-  <label class="chk"><input type="checkbox" id="truthToggle" checked> show injected ground truth</label>
-  <select id="speed" title="Simulation speed">
-    <option value="1">1 h/s</option><option value="2">2 h/s</option><option value="4" selected>4 h/s</option>
-    <option value="8">8 h/s</option><option value="16">16 h/s</option>
-  </select>
-  <button id="pauseBtn">⏸ Pause</button>
-</header>
+<div class="wrap">
+  <div class="top">
+    <h1>🌉 ShiftGuard — live bridge</h1>
+    <small id="conn">connecting…</small>
+  </div>
 
-<main>
-  <section>
-    <div class="card">
-      <div class="scenewrap">
-        <svg id="scene" viewBox="0 0 1000 430" preserveAspectRatio="xMidYMid meet" aria-label="Bridge digital twin"></svg>
-        <div id="overlay"></div>
-      </div>
-      <div class="legend">
-        <span><i style="background:var(--ok)"></i>node healthy</span>
-        <span><i style="background:var(--fault)"></i>node suspected faulty</span>
-        <span><i style="background:var(--dmg)"></i>damage localised here</span>
-        <span><i style="background:#9aa4ae"></i>packet lost (imputed)</span>
-        <span>Deck shape = live measured deflection from the 8 accelerometers (exaggerated). Click a node to break or repair it.</span>
-      </div>
-      <div class="toolbar">
-        <button class="envb" data-cmd='{"cmd":"coldsnap","delta":-12,"hours":96}'>❄ Cold snap (−12 °C, 4 days)</button>
-        <span class="sep"></span>
-        <button class="danger" data-cmd='{"cmd":"damage","level":1}'>Damage: moderate (−10 % k)</button>
-        <button class="danger" data-cmd='{"cmd":"damage","level":2}'>Damage: severe (−25 % k)</button>
-        <button data-cmd='{"cmd":"damage","level":0}'>Repair structure</button>
-        <span class="sep"></span>
-        <button id="lossBtn">📶 5 % packet loss</button>
-        <button data-cmd='{"cmd":"clear"}'>Clear all</button>
-        <span class="sep"></span>
-        <label class="chk" title="Acts like the Wokwi DHT22 node: overrides the temperature sensor">
-          <input type="checkbox" id="dhtOn"> virtual DHT22
-          <input type="range" id="dhtT" min="-25" max="40" step="0.5" value="8"> <b id="dhtV">8.0 °C</b>
-        </label>
-      </div>
-    </div>
+  <div id="verdict"><span class="icon">⏳</span><div><b>Waiting for data…</b><span class="txt">Start it with <code>python run_demo.py</code></span></div></div>
 
-    <div class="card scope" style="margin-top:12px">
-      <div class="scopehead">
-        <h2>Oscilloscope</h2>
-        <select id="scopeSel"></select>
-        <span class="pill" id="scopeInfo">–</span>
-        <span class="spacer"></span>
-        <label class="chk"><input type="checkbox" id="scopeAll"> overlay all nodes</label>
-      </div>
-      <canvas id="scopeCanvas"></canvas>
+  <div class="card">
+    <svg id="scene" viewBox="0 0 1000 330" aria-label="Bridge"></svg>
+    <div id="offline"></div>
+    <div class="hint">Click a sensor to break it</div>
+    <div class="actions">
+      <button data-cmd='{"cmd":"coldsnap","delta":-12,"hours":96}'>❄️ Cold snap</button>
+      <button id="dmgBtn">💥 Damage the bridge</button>
+      <button data-cmd='{"cmd":"clear"}'>🔧 Repair everything</button>
     </div>
-  </section>
+  </div>
 
-  <aside>
-    <div class="card">
-      <h2>Edge monitor verdict</h2>
-      <div id="status"><b>Waiting for data…</b><small>Start the demo with <code>python run_demo.py</code></small></div>
-      <div class="kpis">
-        <div class="kpi"><span>Health score</span><b id="health">–</b></div>
-        <div class="kpi"><span>Temperature</span><b id="temp">–</b></div>
-        <div class="kpi"><span>ShiftGuard false-alarm h</span><b id="fa">0</b></div>
-        <div class="kpi"><span>Per-window baseline false-alarm h</span><b id="bfa">0</b></div>
-      </div>
-      <h2>Accumulated evidence (e-detectors)</h2>
-      <div id="meters"></div>
-      <div class="legend" style="padding-top:6px">black tick = alarm threshold (E[time to false alarm] ≥ c)</div>
+  <div class="stats">
+    <div class="stat"><span>Health</span><b id="health">–</b></div>
+    <div class="stat"><span>Temperature</span><b id="temp">–</b></div>
+    <div class="stat"><span>Hours monitored</span><b id="hours">–</b></div>
+    <div class="stat"><span title="Alarm hours on a healthy bridge, counted from 24 h after the last injected event">False alarms: ShiftGuard vs old method</span><b id="fa">0 vs 0</b></div>
+  </div>
+
+  <div id="lastAlert">No alerts yet.</div>
+
+  <details>
+    <summary>More controls</summary>
+    <div class="more">
+      <button id="lossBtn">📶 Packet loss: off</button>
+      <button id="pauseBtn">⏸ Pause</button>
+      <label>Speed <select id="speed"><option value="1">1×</option><option value="4" selected>4×</option><option value="16">16×</option></select></label>
+      <label><input type="checkbox" id="dhtOn"> Set temperature <input type="range" id="dhtT" min="-25" max="40" step="1" value="8"> <b id="dhtV">8 °C</b></label>
     </div>
-    <div class="card" style="margin-top:12px">
-      <h2>Alert log</h2>
-      <ul id="alerts"></ul>
-    </div>
-  </aside>
-</main>
+    <canvas id="scope"></canvas>
+    <small style="color:var(--muted)">Raw signal of the last sensor you clicked (now: <span id="scopeName">S3</span>)</small>
+  </details>
+</div>
 
 <div id="menu"></div>
 
@@ -144,335 +90,183 @@
 <script>
 "use strict";
 const qs = new URLSearchParams(location.search);
-const WS_PORT = qs.get("ws") || "9001";
-const BRIDGE = qs.get("bridge") || "bridge01";
-const HOST = qs.get("host") || location.hostname || "localhost";
-const N = 8, FS = 100;
-const T = (...p) => ["shm", BRIDGE, ...p].join("/");
-const COL = { NORMAL: "#18a058", ENVIRONMENT: "#2a78d6", SENSOR_FAULT: "#eb6834", STRUCTURAL_DAMAGE: "#d03b3b" };
-const TEXT = { NORMAL: "✅ Structure healthy", ENVIRONMENT: "🌡️ Unprecedented environment", SENSOR_FAULT: "🔧 Sensor fault", STRUCTURAL_DAMAGE: "🚨 Structural damage" };
-const FAULTS = [["drift", "Calibration drift"], ["noise", "Noise (loose connector)"], ["spikes", "Spikes (corruption)"],
-                ["dropout", "Dropout (node offline)"], ["clipping", "Clipping (saturation)"], ["gain", "Gain error"]];
-
-// ---------------------------------------------------------------- live state
-const S = {
-  wave: Array.from({ length: N }, () => new Float32Array(2048)),   // latest window per sensor
-  lastSeqSensor: new Array(N).fill(-1), lostUntil: new Array(N).fill(0),
-  status: null, sim: null, temp: null, playhead: 0, scale: 1e-9, fa: 0, bfa: 0, seen: 0,
-  lp1: new Float32Array(N), lp2: new Float32Array(N), packets: [], connected: false,
+const WS_PORT = qs.get("ws") || "9001", BRIDGE = qs.get("bridge") || "bridge01", HOST = qs.get("host") || location.hostname || "localhost";
+const N = 8, FS = 100, T = (...p) => ["shm", BRIDGE, ...p].join("/");
+const VERDICT = {
+  NORMAL: ["✅", "Bridge is healthy", "#18a058"],
+  ENVIRONMENT: ["🌡️", "Unusual weather — not damage", "#2a78d6"],
+  SENSOR_FAULT: ["🔧", "A sensor is broken — not damage", "#eb6834"],
+  STRUCTURAL_DAMAGE: ["🚨", "Structural damage detected", "#d03b3b"],
 };
+const S = { wave: Array.from({ length: N }, () => new Float32Array(2048)), lp1: new Float32Array(N), lp2: new Float32Array(N),
+            playhead: 0, scale: 1e-9, fa: 0, bfa: 0, lastEvent: -1e9, status: null, sim: null, temp: null, scopeSensor: 2, connected: false };
 
-// ---------------------------------------------------------------- scene
-const svg = document.getElementById("scene");
-const NS = "http://www.w3.org/2000/svg";
-const el = (tag, attrs = {}, parent = svg) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent.appendChild(e); return e; };
-const X0 = 110, X1 = 890, DECK_Y = 190;
-const nodeX = i => X0 + (i + 1) * (X1 - X0) / (N + 1);
-const GW = { x: 40, y: 300 };
-
-el("rect", { x: 0, y: 330, width: 1000, height: 100, fill: "var(--water)", opacity: .75 });
-for (let k = 0; k < 7; k++) el("path", { d: `M ${80 + k * 140} 350 q 18 -6 36 0 t 36 0`, stroke: "#8fb8dc", fill: "none", "stroke-width": 2 });
-el("path", { d: `M 0 205 L ${X0 + 4} 205 L ${X0 + 30} 430 L 0 430 Z`, fill: "var(--ground)" });
-el("path", { d: `M 1000 205 L ${X1 - 4} 205 L ${X1 - 30} 430 L 1000 430 Z`, fill: "var(--ground)" });
-el("rect", { x: X0 - 34, y: DECK_Y + 6, width: 38, height: 30, fill: "#9a8f80", rx: 2 });
-el("rect", { x: X1 - 4, y: DECK_Y + 6, width: 38, height: 30, fill: "#9a8f80", rx: 2 });
-el("text", { x: 500, y: 420, "text-anchor": "middle", fill: "#5b6470", "font-size": 12 }, svg).textContent =
-  "Fixed–fixed girder, 8 accelerometer nodes (first mode ≈ 4 Hz) · damage location: element between S5 and S6";
-
-const wires = el("g", {});
-for (let i = 0; i < N; i++) el("path", { d: `M ${nodeX(i)} ${DECK_Y + 40} Q ${(nodeX(i) + GW.x) / 2} ${DECK_Y + 120} ${GW.x + 30} ${GW.y}`, stroke: "#b8c0c8", "stroke-dasharray": "3 5", fill: "none", "stroke-width": 1.2 }, wires);
-const gw = el("g", { transform: `translate(${GW.x - 6}, ${GW.y - 4})` });
-el("rect", { width: 76, height: 40, rx: 6, fill: "#1f2933" }, gw);
-el("text", { x: 38, y: 17, "text-anchor": "middle", fill: "#fff", "font-size": 11, "font-weight": 600 }, gw).textContent = "EDGE";
-const gwText = el("text", { x: 38, y: 31, "text-anchor": "middle", fill: "#9fb3c8", "font-size": 9 }, gw);
-gwText.textContent = "ShiftGuard";
-const gwLed = el("circle", { cx: 66, cy: 9, r: 4, fill: "#18a058" }, gw);
-
-const deckUnder = el("path", { stroke: "var(--deck2)", "stroke-width": 16, fill: "none", "stroke-linejoin": "round" });
-const deck = el("path", { stroke: "var(--deck)", "stroke-width": 11, fill: "none", "stroke-linejoin": "round" });
-const ice = el("path", { stroke: "#cfe8ff", "stroke-width": 3, fill: "none", opacity: 0 });
-const crack = el("path", { stroke: "#d03b3b", "stroke-width": 3, fill: "none", opacity: 0 });
-const crackLbl = el("text", { "text-anchor": "middle", fill: "#d03b3b", "font-size": 11, "font-weight": 600, opacity: 0 });
-const cars = [0.12, 0.47, 0.8].map((p, k) => ({ p, v: (k % 2 ? -1 : 1) * (0.0009 + 0.0004 * k), g: el("rect", { width: 26, height: 10, rx: 3, fill: ["#3d7bd9", "#d9a33d", "#5aa469"][k] }) }));
+// ------------------------------------------------------------- scene
+const svg = document.getElementById("scene"), NS = "http://www.w3.org/2000/svg";
+const el = (t, a = {}, p = svg) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); p.appendChild(e); return e; };
+const X0 = 110, X1 = 890, DY = 150, nodeX = i => X0 + (i + 1) * (X1 - X0) / (N + 1);
+el("rect", { x: 0, y: 255, width: 1000, height: 75, fill: "#cfe3f3" });
+el("path", { d: `M0 165 L${X0 + 4} 165 L${X0 + 30} 330 L0 330Z`, fill: "#d8cbb2" });
+el("path", { d: `M1000 165 L${X1 - 4} 165 L${X1 - 30} 330 L1000 330Z`, fill: "#d8cbb2" });
 const snow = el("g", { opacity: 0 });
-const flakes = Array.from({ length: 40 }, () => ({ x: Math.random() * 1000, y: Math.random() * 330, v: .4 + Math.random() * .8, c: el("circle", { r: 1.8, fill: "#fff", stroke: "#b9c7d6", "stroke-width": .5 }, snow) }));
-
-const thermo = el("g", { transform: `translate(${X0 + 40}, 90)` });
-el("rect", { x: -26, y: -14, width: 104, height: 34, rx: 7, fill: "#fff", stroke: "#c3cad2" }, thermo);
-el("text", { x: -16, y: 8, "font-size": 16 }, thermo).textContent = "🌡";
-const thermoT = el("text", { x: 8, y: 1, "font-size": 13, "font-weight": 650, fill: "#14181d" }, thermo);
-const thermoSub = el("text", { x: 8, y: 14, "font-size": 9, fill: "#5b6470" }, thermo);
-thermoSub.textContent = "temperature node";
+const flakes = Array.from({ length: 35 }, () => ({ x: Math.random() * 1000, y: Math.random() * 255, v: .4 + Math.random() * .7, c: el("circle", { r: 2, fill: "#fff", stroke: "#c5d3e0", "stroke-width": .6 }, snow) }));
+const deck = el("path", { stroke: "#5f6873", "stroke-width": 14, fill: "none", "stroke-linejoin": "round", "stroke-linecap": "round" });
+const crack = el("path", { stroke: "#d03b3b", "stroke-width": 4, fill: "none", opacity: 0 });
+const thermo = el("text", { x: X0 + 10, y: 60, "font-size": 22, "font-weight": 650, fill: "#16191d" });
+const edge = el("g", { transform: "translate(20, 200)" });
+el("rect", { width: 70, height: 34, rx: 8, fill: "#1f2933" }, edge);
+el("text", { x: 35, y: 22, "text-anchor": "middle", fill: "#fff", "font-size": 13, "font-weight": 600 }, edge).textContent = "EDGE";
 
 const nodes = [];
 for (let i = 0; i < N; i++) {
   const g = el("g", { style: "cursor:pointer" });
-  el("rect", { x: -30, y: -30, width: 60, height: 84, fill: "#000", "fill-opacity": 0 }, g);  // generous hit area: the node moves with the deck
-  el("line", { x1: 0, y1: -14, x2: 0, y2: 0, stroke: "#8a949e", "stroke-width": 2 }, g);
-  const body = el("rect", { x: -19, y: 0, width: 38, height: 26, rx: 4, fill: "#24303c", stroke: "#24303c", "stroke-width": 2 }, g);
-  el("rect", { x: -13, y: 5, width: 12, height: 9, rx: 1, fill: "#5b6b7b" }, g);
-  const led = el("circle", { cx: 11, cy: 8, r: 4, fill: "#18a058" }, g);
-  const ant = el("line", { x1: 14, y1: 0, x2: 18, y2: -9, stroke: "#8a949e", "stroke-width": 1.5 }, g);
-  const lbl = el("text", { x: 0, y: 23, "text-anchor": "middle", fill: "#fff", "font-size": 9, "font-weight": 600 }, g);
-  lbl.textContent = `S${i + 1}`;
-  const tag = el("text", { x: 0, y: 42, "text-anchor": "middle", fill: "#eb6834", "font-size": 10, "font-weight": 600 }, g);
+  el("rect", { x: -30, y: -20, width: 60, height: 70, fill: "#000", "fill-opacity": 0 }, g);
+  const body = el("rect", { x: -18, y: 0, width: 36, height: 30, rx: 7, fill: "#2b3642" }, g);
+  const led = el("circle", { cx: 0, cy: 11, r: 6, fill: "#18a058" }, g);
+  el("text", { x: 0, y: 46, "text-anchor": "middle", "font-size": 13, fill: "#6b7380" }, g).textContent = `S${i + 1}`;
   g.addEventListener("click", ev => openMenu(i, ev));
-  nodes.push({ g, body, led, tag, ant, blink: 0 });
+  nodes.push({ g, led, body });
 }
 
-const packetLayer = el("g", {});
-
-// smooth curve through points (Catmull-Rom -> cubic Bezier)
-function curve(pts) {
-  let d = `M ${pts[0][0]} ${pts[0][1]}`;
-  for (let i = 0; i < pts.length - 1; i++) {
-    const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
-    d += ` C ${p1[0] + (p2[0] - p0[0]) / 6} ${p1[1] + (p2[1] - p0[1]) / 6}, ${p2[0] - (p3[0] - p1[0]) / 6} ${p2[1] - (p3[1] - p1[1]) / 6}, ${p2[0]} ${p2[1]}`;
+function curve(p) {
+  let d = `M ${p[0][0]} ${p[0][1]}`;
+  for (let i = 0; i < p.length - 1; i++) {
+    const a = p[Math.max(0, i - 1)], b = p[i], c = p[i + 1], e = p[Math.min(p.length - 1, i + 2)];
+    d += ` C ${b[0] + (c[0] - a[0]) / 6} ${b[1] + (c[1] - a[1]) / 6}, ${c[0] - (e[0] - b[0]) / 6} ${c[1] - (e[1] - b[1]) / 6}, ${c[0]} ${c[1]}`;
   }
   return d;
 }
 
-// ---------------------------------------------------------------- animation loop
-let lastFrame = performance.now();
+let last = performance.now();
 function frame(now) {
-  const dt = Math.min(0.1, (now - lastFrame) / 1000); lastFrame = now;
-  const paused = S.sim && S.sim.paused;
-  const steps = paused ? 0 : Math.max(1, Math.round(dt * FS));
-  // play the latest window back in real time, low-passed (~4 Hz) so the deck shows the dominant modes
-  const y = new Float32Array(N);
-  for (let s = 0; s < steps; s++) {
+  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  const steps = S.sim && S.sim.paused ? 0 : Math.max(1, Math.round(dt * FS));
+  for (let s = 0; s < steps; s++) {                      // replay the latest window in real time, low-passed
     S.playhead = (S.playhead + 1) % 2048;
-    for (let i = 0; i < N; i++) {
-      const a = S.wave[i][S.playhead];
-      S.lp1[i] += 0.22 * (a - S.lp1[i]);
-      S.lp2[i] += 0.22 * (S.lp1[i] - S.lp2[i]);
-    }
+    for (let i = 0; i < N; i++) { S.lp1[i] += .22 * (S.wave[i][S.playhead] - S.lp1[i]); S.lp2[i] += .22 * (S.lp1[i] - S.lp2[i]); }
   }
-  let rms = 0;
-  for (let i = 0; i < N; i++) rms += S.lp2[i] * S.lp2[i];
-  rms = Math.sqrt(rms / N);
-  S.scale = Math.max(S.scale * 0.995, rms, 1e-9);
-  for (let i = 0; i < N; i++) y[i] = Math.max(-34, Math.min(34, (S.lp2[i] / S.scale) * 16));
-  const pts = [[X0, DECK_Y]];
-  for (let i = 0; i < N; i++) pts.push([nodeX(i), DECK_Y + y[i]]);
-  pts.push([X1, DECK_Y]);
-  const d = curve(pts);
-  deck.setAttribute("d", d); deckUnder.setAttribute("d", d);
-  const yAt = x => { for (let k = 0; k < pts.length - 1; k++) if (x <= pts[k + 1][0]) { const f = (x - pts[k][0]) / (pts[k + 1][0] - pts[k][0]); return pts[k][1] * (1 - f) + pts[k + 1][1] * f; } return DECK_Y; };
-  const iceOn = S.temp !== null && S.temp < 0;
-  ice.setAttribute("d", curve(pts.map(p => [p[0], p[1] - 7]))); ice.setAttribute("opacity", iceOn ? 1 : 0);
-  snow.setAttribute("opacity", iceOn ? 1 : 0);
-  if (iceOn) for (const f of flakes) { f.y += f.v; if (f.y > 330) { f.y = 0; f.x = Math.random() * 1000; } f.c.setAttribute("cx", f.x); f.c.setAttribute("cy", f.y); }
-  for (const c of cars) {
-    if (!paused) { c.p += c.v * dt * 60; if (c.p > 1.02) c.p = -0.02; if (c.p < -0.02) c.p = 1.02; }
-    const x = X0 + c.p * (X1 - X0);
-    c.g.setAttribute("x", x - 13); c.g.setAttribute("y", yAt(x) - 16);
-  }
-  const showTruth = document.getElementById("truthToggle").checked;
+  let rms = 0; for (let i = 0; i < N; i++) rms += S.lp2[i] ** 2;
+  S.scale = Math.max(S.scale * .995, Math.sqrt(rms / N), 1e-9);
+  const y = Array.from(S.lp2, v => Math.max(-28, Math.min(28, v / S.scale * 13)));
+  const pts = [[X0, DY], ...y.map((v, i) => [nodeX(i), DY + v]), [X1, DY]];
+  deck.setAttribute("d", curve(pts));
+  const cold = S.temp !== null && S.temp < 0;
+  snow.setAttribute("opacity", cold ? 1 : 0);
+  if (cold) for (const f of flakes) { f.y += f.v; if (f.y > 255) { f.y = 0; f.x = Math.random() * 1000; } f.c.setAttribute("cx", f.x); f.c.setAttribute("cy", f.y); }
   const dmg = S.sim ? S.sim.damage : 0;
-  if (dmg && showTruth) {
-    const xc = (nodeX(4) + nodeX(5)) / 2, yc = yAt(xc), h = dmg === 2 ? 12 : 7;
-    crack.setAttribute("d", `M ${xc - 3} ${yc - h} L ${xc + 2} ${yc - 2} L ${xc - 2} ${yc + 2} L ${xc + 3} ${yc + h}`);
-    crack.setAttribute("opacity", 1); crackLbl.setAttribute("opacity", 1);
-    crackLbl.setAttribute("x", xc); crackLbl.setAttribute("y", yc - 18);
-    crackLbl.textContent = dmg === 2 ? "injected: severe damage" : "injected: moderate damage";
-  } else { crack.setAttribute("opacity", 0); crackLbl.setAttribute("opacity", 0); }
-
+  if (dmg) { const xc = (nodeX(4) + nodeX(5)) / 2, yc = (pts[5][1] + pts[6][1]) / 2, h = dmg === 2 ? 14 : 8;
+             crack.setAttribute("d", `M ${xc - 3} ${yc - h} L ${xc + 3} ${yc - 2} L ${xc - 3} ${yc + 2} L ${xc + 3} ${yc + h}`); crack.setAttribute("opacity", 1); }
+  else crack.setAttribute("opacity", 0);
   const st = S.status;
-  const injected = new Map((S.sim && S.sim.faults || []).map(f => [f.sensor - 1, f.kind]));
   for (let i = 0; i < N; i++) {
-    const n = nodes[i];
-    n.g.setAttribute("transform", `translate(${nodeX(i)}, ${DECK_Y + 22 + y[i]})`);
     let c = "#18a058";
-    const lost = now < S.lostUntil[i];
-    if (st) {
-      const ev = st.evidence_sensors ? st.evidence_sensors[i] : 1;
-      const frac = Math.log10(Math.max(ev, 1)) / Math.log10(st.alarm_level || 1e4);
-      if (st.label === "SENSOR_FAULT" && st.fault_sensor === i + 1) c = "#eb6834";
-      else if (st.label === "STRUCTURAL_DAMAGE" && (st.damage_location || []).includes(i + 1)) c = "#d03b3b";
-      else if (frac > 0.5) c = "#f0a35e";
-    }
-    if (lost) c = "#9aa4ae";
-    n.blink = Math.max(0, n.blink - dt * 6);
-    n.led.setAttribute("fill", c);
-    n.led.setAttribute("r", 4 + 2.5 * n.blink);
-    n.body.setAttribute("stroke", c === "#18a058" ? "#24303c" : c);
-    n.tag.textContent = showTruth && injected.has(i) ? `⚡ ${injected.get(i)}` : (lost ? "packet lost" : "");
-    n.tag.setAttribute("fill", lost && !(showTruth && injected.has(i)) ? "#7b8794" : "#eb6834");
+    if (st && st.label === "SENSOR_FAULT" && st.fault_sensor === i + 1) c = "#eb6834";
+    if (st && st.label === "STRUCTURAL_DAMAGE" && (st.damage_location || []).includes(i + 1)) c = "#d03b3b";
+    if (st && (st.imputed || []).includes(i + 1)) c = "#a8b0b9";
+    nodes[i].led.setAttribute("fill", c);
+    nodes[i].g.setAttribute("transform", `translate(${nodeX(i)}, ${DY + 20 + y[i]})`);
   }
-  // wireless packets travelling to the edge gateway
-  packetLayer.replaceChildren();
-  S.packets = S.packets.filter(p => now - p.t0 < 450);
-  for (const p of S.packets) {
-    const f = (now - p.t0) / 450, x0 = nodeX(p.i), y0 = DECK_Y + 40, x2 = GW.x + 30, y2 = GW.y, cx = (x0 + GW.x) / 2, cy = DECK_Y + 120;
-    const x = (1 - f) ** 2 * x0 + 2 * (1 - f) * f * cx + f * f * x2, yy = (1 - f) ** 2 * y0 + 2 * (1 - f) * f * cy + f * f * y2;
-    el("circle", { cx: x, cy: yy, r: 2.6, fill: "#2a78d6", opacity: 1 - f * .6 }, packetLayer);
-  }
-  gwLed.setAttribute("fill", st ? COL[st.label] : "#9aa4ae");
   drawScope();
   requestAnimationFrame(frame);
 }
 
-// ---------------------------------------------------------------- oscilloscope
-const scope = document.getElementById("scopeCanvas"), sctx = scope.getContext("2d");
-const sel = document.getElementById("scopeSel");
-for (let i = 0; i < N; i++) sel.add(new Option(`Node S${i + 1} — acceleration`, i));
-sel.value = 2;
+// ------------------------------------------------------------- small scope (under "More controls")
+const scope = document.getElementById("scope"), sc = scope.getContext("2d");
 function drawScope() {
-  const w = scope.clientWidth, h = scope.clientHeight, dpr = window.devicePixelRatio || 1;
-  if (scope.width !== Math.round(w * dpr)) { scope.width = Math.round(w * dpr); scope.height = Math.round(h * dpr); }
-  sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  sctx.fillStyle = "#0f1720"; sctx.fillRect(0, 0, w, h);
-  sctx.strokeStyle = "#1f2c3a"; sctx.lineWidth = 1;
-  for (let k = 1; k < 10; k++) { sctx.beginPath(); sctx.moveTo(k * w / 10, 0); sctx.lineTo(k * w / 10, h); sctx.stroke(); }
-  for (let k = 1; k < 4; k++) { sctx.beginPath(); sctx.moveTo(0, k * h / 4); sctx.lineTo(w, k * h / 4); sctx.stroke(); }
-  const all = document.getElementById("scopeAll").checked;
-  const chans = all ? [...Array(N).keys()] : [+sel.value];
-  let peak = 1e-12;
-  for (const i of chans) for (let k = 0; k < 2048; k += 4) peak = Math.max(peak, Math.abs(S.wave[i][k]));
-  for (const i of chans) {
-    const sel1 = i === +sel.value;
-    sctx.strokeStyle = all && !sel1 ? "rgba(120,170,220,.35)" : "#5ee08a"; sctx.lineWidth = sel1 ? 1.4 : 1;
-    sctx.beginPath();
-    for (let px = 0; px < w; px++) {
-      const k = Math.floor(px / w * 2048), v = S.wave[i][k] / peak;
-      const yy = h / 2 - v * (h / 2 - 6);
-      px ? sctx.lineTo(px, yy) : sctx.moveTo(px, yy);
-    }
-    sctx.stroke();
-  }
-  const xh = S.playhead / 2048 * w;
-  sctx.strokeStyle = "#f5c451"; sctx.beginPath(); sctx.moveTo(xh, 0); sctx.lineTo(xh, h); sctx.stroke();
-  sctx.fillStyle = "#9fb3c8"; sctx.font = "11px system-ui";
-  sctx.fillText(`20.48 s window · 100 Hz · full scale ±${peak.toExponential(1)}`, 8, 14);
+  if (!scope.offsetParent) return;                       // hidden while "More controls" is closed
+  const w = scope.clientWidth, h = scope.clientHeight, r = devicePixelRatio || 1;
+  if (scope.width !== Math.round(w * r)) { scope.width = Math.round(w * r); scope.height = Math.round(h * r); }
+  sc.setTransform(r, 0, 0, r, 0, 0); sc.fillStyle = "#11181f"; sc.fillRect(0, 0, w, h);
+  const d = S.wave[S.scopeSensor]; let pk = 1e-12; for (let k = 0; k < 2048; k += 4) pk = Math.max(pk, Math.abs(d[k]));
+  sc.strokeStyle = "#5ee08a"; sc.beginPath();
+  for (let x = 0; x < w; x++) { const v = d[Math.floor(x / w * 2048)] / pk, yy = h / 2 - v * (h / 2 - 4); x ? sc.lineTo(x, yy) : sc.moveTo(x, yy); }
+  sc.stroke();
 }
 
-// ---------------------------------------------------------------- side panel
-const meters = document.getElementById("meters");
-const meterRows = [["Structure", "var(--dmg)"], ["Environment", "var(--env)"], ...Array.from({ length: N }, (_, i) => [`Sensor S${i + 1}`, "var(--fault)"])]
-  .map(([name, color]) => {
-    const row = document.createElement("div"); row.className = "meter";
-    row.innerHTML = `<span>${name}</span><div class="bar"><i style="background:${color}"></i></div><span class="v">–</span>`;
-    meters.appendChild(row);
-    return { bar: row.querySelector("i"), v: row.querySelector(".v") };
-  });
-function setMeter(m, ev, level) {
-  // log scale: 0 at evidence 1, the threshold sits at 83 % of the bar
-  const frac = Math.max(0, Math.log10(Math.max(ev, 1)) / Math.log10(level)) / 1.2;
-  m.bar.style.width = `${Math.min(100, frac * 100).toFixed(1)}%`;
-  m.v.textContent = ev >= 1000 ? ev.toExponential(0) : ev.toFixed(ev < 10 ? 1 : 0);
-}
-function renderStatus(st) {
-  const box = document.getElementById("status");
-  let extra = "";
-  if (st.label === "SENSOR_FAULT") extra = ` — node S${st.fault_sensor}`;
-  if (st.label === "STRUCTURAL_DAMAGE") extra = ` near S${(st.damage_location || []).join(", S")}` + (st.severity ? ` · ${st.severity} (set {${st.severity_set.join(", ")}})` : "");
-  box.style.borderLeftColor = COL[st.label];
-  box.innerHTML = "<b></b><small></small>";
-  box.querySelector("b").textContent = TEXT[st.label] + extra;
-  box.querySelector("small").textContent = `ground truth: ${st.truth || "–"}` + (st.imputed && st.imputed.length ? ` · lost packets imputed: S${st.imputed.join(", S")}` : "");
-  document.getElementById("health").textContent = `${st.health_score.toFixed(0)}/100`;
+// ------------------------------------------------------------- status
+function render(st) {
+  const [icon, text, col] = VERDICT[st.label] || ["", st.label, "#6b7380"];
+  let detail = "No action needed.";
+  if (st.label === "SENSOR_FAULT") detail = `Sensor S${st.fault_sensor} disagrees with the rest — replace it. The bridge itself is fine.`;
+  if (st.label === "STRUCTURAL_DAMAGE") detail = `Near sensors S${(st.damage_location || []).join(" and S")}` + (st.severity ? ` · severity: ${st.severity}` : "") + " — send an inspector.";
+  if (st.label === "ENVIRONMENT") detail = "Colder or hotter than anything seen before. Watching, no damage alarm.";
+  const v = document.getElementById("verdict");
+  v.style.borderLeftColor = col;
+  v.innerHTML = `<span class="icon"></span><div><b></b><span class="txt"></span></div>`;
+  v.querySelector(".icon").textContent = icon; v.querySelector("b").textContent = text; v.querySelector(".txt").textContent = detail;
+  document.getElementById("health").textContent = `${Math.round(st.health_score)} / 100`;
   document.getElementById("temp").textContent = `${st.temp.toFixed(1)} °C`;
-  document.getElementById("clock").textContent = `bridge hour ${Math.round(st.t_hours)} · day ${(st.t_hours / 24).toFixed(1)}`;
-  document.getElementById("lat").textContent = `edge ${st.proc_ms} ms/window`;
-  setMeter(meterRows[0], st.evidence_struct, st.alarm_level);
-  setMeter(meterRows[1], st.evidence_env, st.alarm_level);
-  (st.evidence_sensors || []).forEach((ev, i) => setMeter(meterRows[2 + i], ev, st.alarm_level));
-  if (st.truth === "healthy") { if (st.label !== "NORMAL") S.fa++; if (st.baseline_alarm) S.bfa++; }
-  document.getElementById("fa").textContent = S.fa;
-  document.getElementById("bfa").textContent = S.bfa;
-}
-function addAlert(a) {
-  const li = document.createElement("li");
-  li.style.borderLeftColor = COL[a.label] || "#d5dae0";
-  li.innerHTML = `<b>h ${Math.round(a.t_hours)} · ${a.label.replace("_", " ")}</b><br>`;
-  li.appendChild(document.createTextNode(a.message));
-  const ul = document.getElementById("alerts");
-  ul.prepend(li);
-  while (ul.children.length > 30) ul.lastChild.remove();
+  thermo.textContent = `🌡 ${st.temp.toFixed(1)} °C`;
+  document.getElementById("hours").textContent = Math.round(st.t_hours);
+  // count only settled healthy hours: right after a repair the evidence needs a few hours to decay
+  if (st.truth && st.truth !== "healthy") S.lastEvent = st.t_hours;
+  if (st.truth === "healthy" && st.t_hours - S.lastEvent > 24) { if (st.label !== "NORMAL") S.fa++; if (st.baseline_alarm) S.bfa++; }
+  document.getElementById("fa").textContent = `${S.fa} vs ${S.bfa}`;
 }
 
-// ---------------------------------------------------------------- MQTT
-const overlay = document.getElementById("overlay");
-function setConn(ok, msg) {
+// ------------------------------------------------------------- MQTT
+const conn = document.getElementById("conn"), offline = document.getElementById("offline");
+function setConn(ok) {
   S.connected = ok;
-  const c = document.getElementById("conn");
-  c.className = "pill " + (ok ? "live" : "down");
-  c.textContent = ok ? `live · ws://${HOST}:${WS_PORT}` : "disconnected";
-  overlay.style.display = ok ? "none" : "flex";
-  if (!ok) overlay.innerHTML = msg;
+  conn.textContent = ok ? "● live" : "● offline";
+  conn.style.color = ok ? "#18a058" : "#d03b3b";
+  offline.style.display = ok ? "none" : "block";
+  offline.textContent = ok ? "" : `Can't reach the broker at ws://${HOST}:${WS_PORT}. Is "python run_demo.py" running?`;
 }
-setConn(false, `Connecting to the MQTT broker at <code>ws://${HOST}:${WS_PORT}</code> …`);
 let client = null;
-if (typeof mqtt === "undefined") {
-  setConn(false, "mqtt.min.js failed to load - open this page through the twin server started by <code>python run_demo.py</code>.");
-} else {
+if (typeof mqtt === "undefined") setConn(false);
+else {
   client = mqtt.connect(`ws://${HOST}:${WS_PORT}`, { protocolVersion: 4, reconnectPeriod: 2000, connectTimeout: 5000,
                                                        clientId: "shm-twin-" + Math.random().toString(16).slice(2, 10) });
-  client.on("connect", () => {
-    setConn(true);
-    client.subscribe([T("node", "+", "accel"), T("env", "temperature"), T("status"), T("alert"), T("sim", "state")]);
-  });
-  client.on("close", () => setConn(false, `Lost the MQTT broker at <code>ws://${HOST}:${WS_PORT}</code> - reconnecting…<br><small>Is <code>python run_demo.py</code> running?</small>`));
+  client.on("connect", () => { setConn(true); client.subscribe([T("node", "+", "accel"), T("env", "temperature"), T("status"), T("alert"), T("sim", "state")]); });
+  client.on("close", () => setConn(false));
   client.on("message", (topic, payload) => {
     let d; try { d = JSON.parse(payload.toString()); } catch { return; }
     if (topic.endsWith("/accel")) {
       const i = (d.sensor | 0) - 1; if (i < 0 || i >= N || !Array.isArray(d.data)) return;
-      const w = S.wave[i]; const n = Math.min(2048, d.data.length);
-      for (let k = 0; k < n; k++) w[k] = d.data[k];
-      S.lastSeqSensor[i] = d.seq; nodes[i].blink = 1;
-      if (Math.random() < 0.6) S.packets.push({ i, t0: performance.now() });
-    } else if (topic.endsWith("/env/temperature")) {
-      S.temp = d.temp;
-      thermoT.textContent = `${d.temp.toFixed(1)} °C`;
-      // a node that did not deliver this window's packet lost it on the radio link
-      for (let i = 0; i < N; i++) if (S.lastSeqSensor[i] >= 0 && S.lastSeqSensor[i] < d.seq) S.lostUntil[i] = performance.now() + 700;
-    } else if (topic.endsWith("/status")) {
-      S.status = d; renderStatus(d);
-    } else if (topic.endsWith("/alert")) {
-      addAlert(d);
-    } else if (topic.endsWith("/sim/state")) {
+      const w = S.wave[i]; for (let k = 0; k < Math.min(2048, d.data.length); k++) w[k] = d.data[k];
+    } else if (topic.endsWith("/env/temperature")) { S.temp = d.temp; }
+    else if (topic.endsWith("/status")) { S.status = d; render(d); }
+    else if (topic.endsWith("/alert")) { document.getElementById("lastAlert").textContent = `Latest alert (bridge hour ${Math.round(d.t_hours)}): ${d.message}`; }
+    else if (topic.endsWith("/sim/state")) {
       S.sim = d;
       document.getElementById("pauseBtn").textContent = d.paused ? "▶ Resume" : "⏸ Pause";
-      document.getElementById("lossBtn").textContent = d.packet_loss ? `📶 packet loss ${(d.packet_loss * 100).toFixed(0)} % — turn off` : "📶 5 % packet loss";
-      thermoSub.textContent = d.override ? "DHT22 override" : "temperature node";
-      if (document.activeElement !== document.getElementById("speed")) document.getElementById("speed").value = String(d.rate);
+      document.getElementById("lossBtn").textContent = d.packet_loss ? "📶 Packet loss: on" : "📶 Packet loss: off";
+      document.getElementById("dmgBtn").textContent = d.damage === 0 ? "💥 Damage the bridge" : d.damage === 1 ? "💥 Make it severe" : "💥 Severe damage";
     }
   });
 }
-function send(cmd) {
-  if (!client || !S.connected) return;
-  client.publish(T("control"), JSON.stringify(cmd), { qos: 1 });
-}
+const send = cmd => { if (client && S.connected) client.publish(T("control"), JSON.stringify(cmd), { qos: 1 }); };
 
-// ---------------------------------------------------------------- controls
-document.querySelectorAll("button[data-cmd]").forEach(b => b.addEventListener("click", () => send(JSON.parse(b.dataset.cmd))));
-document.getElementById("lossBtn").addEventListener("click", () => send({ cmd: "packet_loss", p: S.sim && S.sim.packet_loss ? 0 : 0.05 }));
-document.getElementById("pauseBtn").addEventListener("click", () => send({ cmd: S.sim && S.sim.paused ? "resume" : "pause" }));
-document.getElementById("speed").addEventListener("change", e => send({ cmd: "speed", rate: +e.target.value }));
-const dhtT = document.getElementById("dhtT"), dhtV = document.getElementById("dhtV"), dhtOn = document.getElementById("dhtOn");
-dhtT.addEventListener("input", () => { dhtV.textContent = `${(+dhtT.value).toFixed(1)} °C`; });
+// ------------------------------------------------------------- controls
+document.querySelectorAll("button[data-cmd]").forEach(b => b.onclick = () => send(JSON.parse(b.dataset.cmd)));
+document.getElementById("dmgBtn").onclick = () => send({ cmd: "damage", level: Math.min(2, (S.sim ? S.sim.damage : 0) + 1) });
+document.getElementById("lossBtn").onclick = () => send({ cmd: "packet_loss", p: S.sim && S.sim.packet_loss ? 0 : 0.05 });
+document.getElementById("pauseBtn").onclick = () => send({ cmd: S.sim && S.sim.paused ? "resume" : "pause" });
+document.getElementById("speed").onchange = e => send({ cmd: "speed", rate: +e.target.value });
+const dhtT = document.getElementById("dhtT"), dhtOn = document.getElementById("dhtOn");
+dhtT.oninput = () => { document.getElementById("dhtV").textContent = `${dhtT.value} °C`; };
 setInterval(() => { if (dhtOn.checked && client && S.connected) client.publish(T("env", "override"), JSON.stringify({ temp: +dhtT.value, source: "twin" })); }, 1000);
 
 const menu = document.getElementById("menu");
+const FAULTS = [["noise", "Make it noisy"], ["drift", "Make it drift slowly"], ["dropout", "Switch it off"], ["spikes", "Add glitches"]];
 function openMenu(i, ev) {
   ev.stopPropagation();
-  sel.value = i;
-  menu.innerHTML = `<div class="t">Node S${i + 1}</div>`;
+  S.scopeSensor = i; document.getElementById("scopeName").textContent = `S${i + 1}`;
+  menu.innerHTML = `<div>Sensor S${i + 1}</div>`;
   for (const [kind, name] of FAULTS) {
-    const b = document.createElement("button"); b.textContent = `⚡ ${name}`;
+    const b = document.createElement("button"); b.textContent = name;
     b.onclick = () => { send({ cmd: "fault", kind, sensor: i + 1, hours: 48 }); menu.style.display = "none"; };
     menu.appendChild(b);
   }
-  const r = document.createElement("button"); r.textContent = "🔧 Repair / replace node";
+  const r = document.createElement("button"); r.textContent = "Repair it";
   r.onclick = () => { send({ cmd: "repair_sensor", sensor: i + 1 }); menu.style.display = "none"; };
   menu.appendChild(r);
   menu.style.display = "block";
-  menu.style.left = `${Math.min(ev.clientX, innerWidth - 210)}px`;
-  menu.style.top = `${Math.min(ev.clientY, innerHeight - 280)}px`;
+  menu.style.left = `${Math.min(ev.clientX, innerWidth - 220)}px`;
+  menu.style.top = `${Math.min(ev.clientY, innerHeight - 240)}px`;
 }
 document.addEventListener("click", e => { if (!menu.contains(e.target)) menu.style.display = "none"; });
-
 requestAnimationFrame(frame);
 </script>
 </body>

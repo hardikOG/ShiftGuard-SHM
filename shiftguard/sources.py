@@ -146,11 +146,11 @@ class Z24Source:
         return self.window(T, level, rng, split="sev_train")
 
 
-def make_source(cfg, name, z24_dir=None, z24_setup=0):
+def make_source(cfg, name, z24_dir=None, z24_setup=0, z24_channels=None):
     if name == "sim":
         return VirtualBridge(cfg)
     if name == "z24":
         if not z24_dir:
             raise ValueError("--z24-dir is required for the z24 source")
-        return Z24Source(cfg, z24_dir, setup=z24_setup)
+        return Z24Source(cfg, z24_dir, setup=z24_setup, channels=z24_channels)
     raise ValueError(name)

@@ -101,35 +101,28 @@ This one command starts these parts:
 
 If no trained model exists yet, it trains one first, which takes about 1–3 minutes.
 
-### The live digital twin
-![Digital twin during severe damage: the edge localises it to S5–S6 with severity set {Severe}](docs/digital_twin_damage.jpg)
+### What you see
+The dashboard has two tabs:
+- **Live bridge** (also at http://localhost:8502/twin.html, good for a projector):
+  - one big verdict: healthy, unusual weather, broken sensor, or damage
+  - the bridge, whose deck moves with the live sensor data
+  - three buttons: **Cold snap**, **Damage the bridge** (click again for severe), **Repair everything**
+  - click any sensor (S1–S8) to break or repair it
+  - *More controls* holds packet loss, pause, speed, a temperature slider and a raw-signal view
+- **Details:** the evidence chart, false alarms (ShiftGuard vs the old method), analysis time per reading, and
+  the alert list.
 
-The twin is a virtual workbench, in the spirit of Tinkercad or Wokwi, connected straight to the MQTT
-broker:
-- **The deck moves with the real data.** Each node's latest 20 s window is played back in real time
-  and low-pass filtered, so the deck shows the measured bending (exaggerated). A faulty node visibly bends
-  the deck the wrong way, because the twin draws what the sensors *report*, not the true motion.
-- **Every sensor node is a device you can break.** Click a node to inject drift, noise, spikes, dropout,
-  clipping or a gain error, or to repair it. Its LED shows the edge's verdict, and packets fly to the
-  edge gateway (grey = lost on the radio link and imputed).
-- **Weather and damage controls:** cold snap (snow and ice appear below 0 °C), moderate or severe damage
-  (a crack appears between S5 and S6 when *show injected ground truth* is on), packet loss, pause, and speed.
-- **Virtual DHT22:** a temperature slider that overrides the temperature node, like the Wokwi ESP32.
-- **Oscilloscope** for any node, or all nodes overlaid.
-- **Side panel:** the edge monitor's verdict, health score, all ten e-detectors against their alarm
-  threshold, the measured edge latency per window, and the alert log.
+![Live bridge during damage](docs/digital_twin_damage.jpg)
 
-**Demo script (about 3 minutes; works the same from the dashboard sidebar or the twin):**
-1. Show the healthy bridge. The status shows ✅, the health score is near 100 and the evidence curves stay low.
-2. Inject a fault: in the twin, click **S3 → Calibration drift** (or in the sidebar, **Sensor 3 → drift → Inject**).
-   About 10 bridge-hours later the status becomes 🔧 *Sensor fault — node S3*. There is **no damage alarm**.
-   Point at the evidence meters, where only S3 crosses its threshold. When the fault ends the status goes back to ✅.
-3. Click **Cold snap**. When the temperature drops below anything seen in training, the alarm is
-   attributed to 🌡️ *Unprecedented environment*, not to damage.
-4. Click **5 % packet loss**. Lost packets are imputed by the masked-sensor model, which you can see as `*` on the bar chart.
-5. Click **Damage: moderate**. Within a few hours the status becomes 🚨 *Structural damage near sensors …*,
-   with a conformal severity set. Then click **Damage: severe**.
-6. Point at the two KPIs side by side: *ShiftGuard false-alarm hours* vs *per-window baseline false-alarm hours*.
+**Demo script (about 3 minutes):**
+1. The bridge is healthy: ✅ *Bridge is healthy*.
+2. Click sensor **S3 → Make it drift slowly**. About 10 bridge-hours later: 🔧 *A sensor is broken — not damage*,
+   naming S3. No damage alarm.
+3. Click **Cold snap**. Snow falls. When it gets colder than anything seen in training: 🌡️ *Unusual weather —
+   not damage*.
+4. Click **Damage the bridge**. Within a few hours: 🚨 *Structural damage detected*, near S5 and S6, with a
+   severity. Click it again for severe damage.
+5. Click **Repair everything**, then open **Details** and point at *False alarms: ours vs old*.
 
 You can also run each part in its own terminal and inject events from the command line:
 ```bash

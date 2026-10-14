@@ -61,7 +61,7 @@ def evaluate(labels, fault_sensors, truth, onset_hour):
 def run_once(args, seed, outdir, verbose=True):
     cfg = Config(model=args.model, seed=seed, alarm_level=args.alarm_level)
     rng = np.random.default_rng(seed)
-    src = make_source(cfg, args.source, args.z24_dir, args.z24_setup)
+    src = make_source(cfg, args.source, args.z24_dir, args.z24_setup, args.z24_channels)
     hours = 24 * 120 if args.quick else HOURS_PER_YEAR
     t0 = time.time()
     if verbose: print(f"[seed {seed}] 1/6 generating healthy training year ({src.name}) ...", flush=True)
@@ -216,6 +216,8 @@ def main():
     ap.add_argument("--source", default="sim", choices=["sim", "z24"])
     ap.add_argument("--z24-dir", default=None)
     ap.add_argument("--z24-setup", default="0")
+    ap.add_argument("--z24-channels", type=int, nargs="+", default=None,
+                    help="8 channel indices; with --z24-setup all, use channels shared by every setup")
     ap.add_argument("--model", default="mlp", choices=["mlp", "ridge"])
     ap.add_argument("--seeds", type=int, nargs="+", default=[0])
     ap.add_argument("--alarm-level", type=float, default=1e4)
