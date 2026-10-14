@@ -51,6 +51,17 @@ class SeverityConformal:
         return top, sets
 
 
+class _IgnoreTemperature:
+    """Global (not temperature-localised) p-value with the localised call signature (s, T).
+    A class rather than a lambda so a trained monitor can always be pickled."""
+
+    def __init__(self, p):
+        self.p = p
+
+    def __call__(self, s, T):
+        return self.p(s)
+
+
 class ShiftGuard:
     def __init__(self, cfg):
         self.cfg = cfg
@@ -61,21 +72,31 @@ class ShiftGuard:
 
     # ------------------------------------------------------------------ scoring
     def masked_global(self, X, T, S):
-        """Global structure score after masking + imputing the worst sensor of each window."""
+        """Mask-and-impute the worst sensor j* of each window and re-score the others.
+
+        Returns G (structure score = mean re-scored residual of the sensors other than j*), J (= j*)
+        and SM, the per-sensor scores the sensor detectors use: s_j* for j* itself and the re-scored
+        s'_i for every other sensor. Without the re-scoring, a faulty sensor also inflates the
+        residuals of the neighbours that are predicted from it, their detectors accumulate evidence
+        too, and the fault is blamed on a neighbour once the faulty sensor recovers.
+        """
         J = S.argmax(1)
         if not self.cfg.use_masking:
             s = np.sort(S, 1)
-            return s[:, :-1].mean(1), J
+            return s[:, :-1].mean(1), J, S
         G = np.zeros(len(X))
+        SM = S.copy()
         for j in range(self.N):
             sel = J == j
             if not sel.any():
                 continue
             Xm = X[sel].copy()
             Xm[:, j] = self.model.predict_sensor(Xm, T[sel], j)
-            Sm = np.delete(self.model.sensor_scores(Xm, T[sel]), j, axis=1)
-            G[sel] = Sm.mean(1)
-        return G, J
+            Sj = self.model.sensor_scores(Xm, T[sel])
+            Sj[:, j] = S[sel, j]
+            SM[sel] = Sj
+            G[sel] = np.delete(Sj, j, axis=1).mean(1)
+        return G, J, SM
 
     def env_score(self, T):
         T = np.atleast_1d(T)
@@ -85,8 +106,8 @@ class ShiftGuard:
     def score_batch(self, X, T):
         T = np.asarray(T, dtype=float)
         S = self.model.sensor_scores(X, T)
-        G, J = self.masked_global(X, T, S)
-        return dict(S=S, G=G, J=J, E=self.env_score(T))
+        G, J, SM = self.masked_global(X, T, S)
+        return dict(S=S, SM=SM, G=G, J=J, E=self.env_score(T))
 
     # ------------------------------------------------------------------ training
     def fit(self, X_fit, T_fit, X_cal, T_cal):
@@ -96,18 +117,15 @@ class ShiftGuard:
     def calibrate(self, X_cal, T_cal):
         """Conformal calibration on held-out healthy windows (no model training)."""
         self.T_ref = np.sort(np.asarray(T_cal, float))
+        self.x_ref = np.median(X_cal, 0)       # reference fill for lost packets before imputation
         sc = self.score_batch(X_cal, T_cal)
         T_cal = np.asarray(T_cal, float)
         if self.cfg.local_k:
             self._p_struct = LocalConformalPValue(sc["G"], T_cal, self.cfg.local_k, self.rng)
-            self._p_sensor = [LocalConformalPValue(sc["S"][:, i], T_cal, self.cfg.local_k, self.rng) for i in range(self.N)]
+            self._p_sensor = [LocalConformalPValue(sc["SM"][:, i], T_cal, self.cfg.local_k, self.rng) for i in range(self.N)]
         else:
-            g = ConformalPValue(sc["G"], self.rng)
-            self._p_struct = lambda s, T: g(s)
-            self._p_sensor = []
-            for i in range(self.N):
-                pi = ConformalPValue(sc["S"][:, i], self.rng)
-                self._p_sensor.append(lambda s, T, pi=pi: pi(s))
+            self._p_struct = _IgnoreTemperature(ConformalPValue(sc["G"], self.rng))
+            self._p_sensor = [_IgnoreTemperature(ConformalPValue(sc["SM"][:, i], self.rng)) for i in range(self.N)]
         sub = self.T_ref[::max(1, len(self.T_ref) // 1500)]
         d = np.sort(np.abs(sub[:, None] - self.T_ref[None, :]), 1)[:, 1:self.cfg.env_k + 1].mean(1)
         self.p_env = ConformalPValue(d, self.rng)
@@ -132,11 +150,14 @@ class ShiftGuard:
     def p_struct(self, G, T):
         return self._p_struct(G, T)
 
-    def _update(self, S, G, J, E, T):
+    def _update(self, S, G, J, E, T, SM=None):
+        """One sequential step. S: raw per-sensor scores (reported, used for localisation and
+        severity); SM: mask-and-impute per-sensor scores (drive the sensor detectors)."""
         c = self.cfg
+        SM = S if SM is None else SM
         p_g = float(self._p_struct(G, T)[0])
         m_g = self.det_struct.update(mixture_evalue(p_g, c.eps_grid)[0])
-        m_s = [d.update(mixture_evalue(float(p(S[i], T)[0]), c.eps_grid)[0])
+        m_s = [d.update(mixture_evalue(float(p(SM[i], T)[0]), c.eps_grid)[0])
                for i, (d, p) in enumerate(zip(self.det_sensor, self._p_sensor))]
         m_e = self.det_env.update(mixture_evalue(float(self.p_env(E)[0]), c.eps_grid)[0]) if c.use_env_monitor else 0.0
         s_alarm = [d.alarm for d in self.det_sensor]
@@ -168,11 +189,11 @@ class ShiftGuard:
     def step(self, x, T):
         """Online: x = (n_sensors, n_bands) features of one window, T = temperature."""
         sc = self.score_batch(x[None], np.array([T]))
-        return self._update(sc["S"][0], sc["G"][0], sc["J"][0], sc["E"][0], T)
+        return self._update(sc["S"][0], sc["G"][0], sc["J"][0], sc["E"][0], T, sc["SM"][0])
 
     def run(self, X, T):
         """Offline: score a whole stream in batch, then run the detectors sequentially."""
         self.reset()
         sc = self.score_batch(X, T)
         T = np.asarray(T, float)
-        return [self._update(sc["S"][t], sc["G"][t], sc["J"][t], sc["E"][t], T[t]) for t in range(len(X))], sc
+        return [self._update(sc["S"][t], sc["G"][t], sc["J"][t], sc["E"][t], T[t], sc["SM"][t]) for t in range(len(X))], sc

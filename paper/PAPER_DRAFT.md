@@ -2,7 +2,8 @@
 
 *Hardik Grover, Advait Anand, Akash Kumar, Yograj, [member 5] — Dept. of CTECH, SRM Institute of Science and Technology, Kattankulathur. Supervisor: Dr. P. Saravanan*
 
-> Draft for Review-2. Results come from `results/results.md` (3 seeds). Numbers marked **[Z24]**
+> Draft for Review-2. Results come from `results/results.md` and `results_ridge/results.md` (3 seeds),
+> regenerated after the per-sensor detectors were switched to mask-and-impute scores (Section IV). Numbers marked **[Z24]**
 > must be filled in after running on the real Z24 data.
 
 ---
@@ -34,8 +35,8 @@ deployments cannot provide.
 
 Results:
 - **False alarms:** over a simulated monitoring year with a record cold snap, five types of IoT sensor
-  fault and progressive damage, ShiftGuard reduces false-alarm episodes from 315 to 7 compared with a
-  per-window conformal autoencoder baseline.
+  fault and progressive damage, ShiftGuard reduces false-alarm episodes from 315 to about 8 (and false-alarm hours
+  from 347 to 26) compared with a per-window conformal autoencoder baseline.
 - **Detection:** it detects moderate damage within 4 h.
 - **Sensor faults:** it attributes 94 % of sensor-fault hours to the correct sensor, and labels none of
   them as damage.
@@ -67,8 +68,8 @@ sensor fault isolation, environmental variability, Z24 bridge.
      for SHM alarms. The guarantee is on the expected time to a false alarm. Temperature-localised conformal
      calibration handles the seasonal covariate shift.
   3. A three-way attribution rule (damage / environment / sensor-i) plus conformal severity sets.
-  4. A software-defined AIoT testbed: MQTT virtual nodes, edge monitor, dashboard and Node-RED alerts,
-     with a fault-injection protocol that gives exact ground truth.
+  4. A software-defined AIoT testbed: MQTT virtual nodes, edge monitor, dashboard, an interactive
+     browser digital twin and Node-RED alerts, with a fault-injection protocol that gives exact ground truth.
 
 ## II. Related Work
 *(Reuse the 11 papers from the Zeroth Review deck and add the following.)*
@@ -101,9 +102,24 @@ Fig. 1 should show the architecture diagram from the README.
    over MQTT once per hour. The source is either an 8-DOF bridge model (first mode about 4 Hz, Z24-like
    stiffening below 0 °C) or Z24 recordings replayed with a temperature warp. A fault injector applies
    gain, drift, noise, spikes, dropout and clipping. A Wokwi ESP32 + DHT22 node can override the temperature.
-2. **Edge analytics:** ShiftGuard (Section IV) runs at about 4 ms per window on a laptop CPU.
-3. **Application layer:** a SQLite store, a Streamlit dashboard and a Node-RED flow. Damage and
-   sensor-fault alerts are emailed; weather alerts only go to the log.
+2. **Edge analytics:** ShiftGuard (Section IV) reassembles each window from the MQTT packets, imputes lost
+   packets and updates all ten detectors in a median of 4.9 ms per window (p95 9.6 ms) on a laptop CPU (measured over the live
+   pipeline, ridge model, including feature extraction).
+3. **Application layer:**
+   - a SQLite store
+   - a Streamlit dashboard
+   - a browser digital twin connected to the broker over MQTT-over-WebSocket: the deck is animated from the
+     live accelerometer windows, and faults, weather and damage are injected by clicking on the model
+   - a Node-RED flow: damage and sensor-fault alerts (including a severity escalation) are emailed;
+     weather alerts only go to the log
+4. **Fault tolerance:**
+   - crashed components are restarted by a supervisor, and the edge monitor resumes its store
+   - every MQTT client reconnects with back-off and re-subscribes
+   - windows are processed in strict sequence order, with late packets imputed
+   - a restarted sensor network is detected and appended to the history
+
+   These behaviours are covered by an automated multi-process test (20 % packet loss and a sensor-network
+   restart).
 
 ## IV. Methodology
 **Features.** Each window gives, for each sensor $i$, a vector of $B=16$ log band powers $x_i\in\mathbb R^B$
@@ -117,8 +133,13 @@ Training randomly masks sensors (self-supervised). The sensor score is
 $s_i = \frac1B\lVert (x_i-\hat x_i)/\sigma_i\rVert^2$.
 
 **Mask-and-impute.** Let $j^*=\arg\max_i s_i$. Replace $x_{j^*}$ by $\hat x_{j^*}$, recompute the other
-sensors' scores, and define the structure score $G=\operatorname{mean}_{i\neq j^*} s_i'$. A faulty
-sensor then leaves $G$ unchanged, while damage raises it. Lost packets are imputed the same way.
+sensors' scores $s_i'$, and define the structure score $G=\operatorname{mean}_{i\neq j^*} s_i'$. A faulty
+sensor then leaves $G$ unchanged, while damage raises it. The per-sensor detectors use the same masked
+scores: $\tilde s_{j^*}=s_{j^*}$ and $\tilde s_i=s_i'$ for $i\neq j^*$. Without this, a faulty sensor also
+inflates the residuals of the neighbours that are predicted from it. Their detectors then accumulate
+evidence, and when the fault clears the alarm is passed on to a neighbour. Lost packets are imputed the
+same way: features are computed from the received channels only, and each missing sensor is predicted
+from the others.
 
 **Temperature-localised conformal p-values.** For a score $s$ observed at temperature $T$, rank $s$ among
 the $k=400$ calibration scores recorded at the temperatures closest to $T$:
@@ -131,7 +152,7 @@ The detector state is updated as $M_t = e_t\max(M_{t-1},1)$ and raises an alarm 
 p-values are i.i.d. uniform (no change), $\mathbb E[\tau_{\text{false}}]\ge c$. We use $c=10^4$ windows,
 about 14 months at one window per hour. Three families run in parallel:
 - structure ($G$)
-- each sensor ($s_i$, with threshold $Nc$, which is a Bonferroni correction)
+- each sensor ($\tilde s_i$, with threshold $Nc$, which is a Bonferroni correction)
 - environment (k-NN novelty of $T$ against the calibration temperatures)
 
 The detector state is capped at $10c$ so that it recovers after a condition ends.
@@ -181,30 +202,30 @@ test location is never seen in training.
 
 | Method | False-alarm h | False-alarm episodes | Damage delay (h) | Damage recall | Faults correctly attributed | Faults called damage | Cold snap called damage |
 |---|---|---|---|---|---|---|---|
-| ShiftGuard (proposed) | 39.7 | 7.3 | 3.7 | 98.7% | 93.8% | 0.0% | 0.0% |
+| ShiftGuard (proposed) | 26 | 7.7 | 3.7 | 98.7% | 93.6% | 0.0% | 0.0% |
 | Per-window AE + conformal 5% | 347 | 314.7 | 4 | 67.6% | 0.0% | 86.1% | 36.1% |
 | Per-window AE + conformal 0.1% | 7.7 | 3 | 326.3 | 43.8% | 0.0% | 70.3% | 17.3% |
 | Ablation: per-window conformal 5% (no e-detector) | 351 | 328 | 0 | 86.7% | 0.0% | 9.2% | 31.9% |
 | Ablation: no sensor masking | 40.7 | 7.3 | 3.7 | 98.7% | 3.4% | 90.9% | 0.2% |
-| Ablation: global (not temperature-localised) calibration | 117 | 16.3 | 7 | 98.3% | 94.0% | 0.0% | 6.3% |
-| Ablation: no temperature conditioning | 42.3 | 8.3 | 4.7 | 98.6% | 94.2% | 0.1% | 0.0% |
-| Ablation: no environment monitor | 40.3 | 7.3 | 4 | 99.5% | 93.6% | 0.0% | 33.5% |
+| Ablation: global (not temperature-localised) calibration | 106 | 16.7 | 7 | 98.3% | 93.9% | 0.0% | 6.3% |
+| Ablation: no temperature conditioning | 28.7 | 9.3 | 4.7 | 98.6% | 93.8% | 0.1% | 0.0% |
+| Ablation: no environment monitor | 26.7 | 7.7 | 4 | 99.5% | 93.5% | 0.0% | 33.5% |
 
 **Table II.** The same experiment with the linear cross-sensor model (ridge).
 
 | Method | False-alarm h | False-alarm episodes | Damage delay (h) | Damage recall | Faults correctly attributed | Faults called damage | Cold snap called damage |
 |---|---|---|---|---|---|---|---|
-| ShiftGuard (proposed) | 34.7 | 8 | 2.7 | 98.8% | 95.7% | 1.2% | 0.0% |
+| ShiftGuard (proposed) | 23.3 | 6.7 | 2.7 | 98.8% | 95.7% | 1.2% | 0.0% |
 | Per-window AE + conformal 5% | 347 | 314.7 | 4 | 67.6% | 0.0% | 86.1% | 36.1% |
 | Per-window AE + conformal 0.1% | 7.7 | 3 | 326.3 | 43.8% | 0.0% | 70.3% | 17.3% |
 | Ablation: per-window conformal 5% (no e-detector) | 377 | 349.7 | 0 | 96.3% | 0.0% | 18.3% | 30.8% |
 | Ablation: no sensor masking | 36.3 | 8.3 | 2.3 | 98.8% | 1.0% | 96.4% | 0.0% |
-| Ablation: global (not temperature-localised) calibration | 91 | 16 | 7.3 | 98.3% | 97.2% | 0.1% | 0.6% |
-| Ablation: no temperature conditioning | 38 | 8 | 2.7 | 98.8% | 95.7% | 1.3% | 0.0% |
-| Ablation: no environment monitor | 35.7 | 8.3 | 3 | 99.6% | 94.9% | 2.0% | 33.3% |
+| Ablation: global (not temperature-localised) calibration | 64.3 | 13 | 7.3 | 98.3% | 97.3% | 0.1% | 0.6% |
+| Ablation: no temperature conditioning | 26.3 | 7.7 | 2.7 | 98.8% | 95.7% | 1.3% | 0.0% |
+| Ablation: no environment monitor | 24 | 7 | 3 | 99.6% | 94.9% | 2.0% | 33.3% |
 
 **Validity (healthy-only year, 3 seeds).**
-- ShiftGuard: 4.0 (MLP) and 2.7 (ridge) false-alarm episodes per year.
+- ShiftGuard: 3.3 (MLP) and 2.7 (ridge) false-alarm episodes per year.
 - Per-window 5 % baseline: 390 false-alarm episodes per year.
 - The design target is E[time to false alarm] ≥ 1.14 years. Counting the per-sensor detectors (a union
   bound gives c/2 overall) and hourly autocorrelation, the realised rate is a few episodes per year.
@@ -224,7 +245,8 @@ Key reading of the tables:
   gives about 330–350 false-alarm episodes, against 7–8 for the e-detector.
 - **Masking is what makes fault attribution possible.** Without it, 91–96 % of fault hours are called
   damage, against 0–1 % with masking.
-- **Localised calibration halves false alarms** (117 → 40 h for MLP) and shortens detection delay.
+- **Localised calibration cuts false-alarm hours by about 75 %** (106 → 26 h for MLP, 64 → 23 h for ridge)
+  and halves detection delay.
 - **The environment monitor is what stops the cold snap being called damage** (33 % → 0 %).
 - **The baselines face a dilemma.** At α = 5 % the baseline detects damage fast but raises 315
   false-alarm episodes. At α = 0.1 % it misses moderate damage entirely, with a 326 h delay and 44 % recall.
@@ -245,7 +267,8 @@ Figures to include:
 - **The guarantee is approximate.** It assumes exchangeable healthy windows, and hourly windows are
   autocorrelated. The healthy-only year reports how much this matters in practice.
 - **Single-fault assumption.** Mask-and-impute removes one sensor per window. Simultaneous faults would
-  need an iterative version.
+  need an iterative version. (Lost packets are already imputed iteratively, for any number of missing
+  sensors up to half the network.)
 - **Simulated temperature effect.** The Z24 temperature effect is simulated (the progressive-damage test
   has no temperature channel). Long-term Z24 monitoring data would allow a fully measured evaluation.
 - **Model choice.** The linear (ridge) variant localises damage more sharply. The neural variant is

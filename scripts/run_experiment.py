@@ -203,9 +203,9 @@ def write_report(packs, outdir, args):
               "| " + " | ".join(f"S{i+1}" for i in range(len(loc))) + " |", "|" + "---|" * len(loc),
               "| " + " | ".join(f"{v:.2f}" for v in loc) + " |"]
     lines += ["", "Figures: `figures/timeline.png`, `figures/attribution_matrix.png`, `figures/ablation.png`, `figures/localisation.png`"]
-    with open(os.path.join(outdir, "results.md"), "w") as f:
+    with open(os.path.join(outdir, "results.md"), "w", encoding="utf-8", newline="\n") as f:
         f.write("\n".join(lines) + "\n")
-    with open(os.path.join(outdir, "results.json"), "w") as f:
+    with open(os.path.join(outdir, "results.json"), "w", encoding="utf-8", newline="\n") as f:
         json.dump(dict(aggregate=agg, per_seed=[dict(seed=s, results=p["results"], null=p["null"]) for s, p in zip(args.seeds, packs)]),
                   f, indent=1, default=str)
     return "\n".join(lines)

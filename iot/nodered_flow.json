@@ -34,7 +34,11 @@
     "inputs": 0,
     "x": 140,
     "y": 120,
-    "wires": [["sg_route"]]
+    "wires": [
+      [
+        "sg_route"
+      ]
+    ]
   },
   {
     "id": "sg_route",
@@ -44,27 +48,52 @@
     "property": "payload.label",
     "propertyType": "msg",
     "rules": [
-      {"t": "eq", "v": "STRUCTURAL_DAMAGE", "vt": "str"},
-      {"t": "eq", "v": "SENSOR_FAULT", "vt": "str"},
-      {"t": "else"}
+      {
+        "t": "eq",
+        "v": "STRUCTURAL_DAMAGE",
+        "vt": "str"
+      },
+      {
+        "t": "eq",
+        "v": "SENSOR_FAULT",
+        "vt": "str"
+      },
+      {
+        "t": "else"
+      }
     ],
     "checkall": "false",
     "repair": false,
     "outputs": 3,
     "x": 360,
     "y": 120,
-    "wires": [["sg_fmt"], ["sg_fmt"], ["sg_debug"]]
+    "wires": [
+      [
+        "sg_fmt"
+      ],
+      [
+        "sg_fmt"
+      ],
+      [
+        "sg_debug"
+      ]
+    ]
   },
   {
     "id": "sg_fmt",
     "type": "function",
     "z": "sg_tab",
     "name": "format email",
-    "func": "const a = msg.payload;\nconst urgent = a.label === 'STRUCTURAL_DAMAGE';\nmsg.topic = (urgent ? '[URGENT] Structural damage alarm - ' : '[MAINTENANCE] Sensor fault - ') + a.bridge;\nmsg.payload = `ShiftGuard SHM alert\\n\\nBridge: ${a.bridge}\\nBridge hour: ${a.t_hours}\\nAttribution: ${a.label}\\nTemperature: ${a.temp} C\\n\\n${a.message}\\n\\nThis alert was raised by an anytime-valid conformal e-detector: on a healthy structure the expected time to a false alarm exceeds the configured threshold.`;\nreturn msg;",
+    "func": "// the latest alert is retained on the broker for late-joining dashboards; never e-mail it twice\nif (msg.retain) return null;\nconst a = msg.payload;\nconst urgent = a.label === 'STRUCTURAL_DAMAGE';\nmsg.topic = (urgent ? '[URGENT] Structural damage alarm - ' : '[MAINTENANCE] Sensor fault - ') + a.bridge;\nmsg.payload = `ShiftGuard SHM alert\\n\\nBridge: ${a.bridge}\\nBridge hour: ${a.t_hours}\\nAttribution: ${a.label}\\nTemperature: ${a.temp} C\\n\\n${a.message}\\n\\nThis alert was raised by an anytime-valid conformal e-detector: on a healthy structure the expected time to a false alarm exceeds the configured threshold.`;\nreturn msg;",
     "outputs": 1,
     "x": 580,
     "y": 100,
-    "wires": [["sg_mail", "sg_debug"]]
+    "wires": [
+      [
+        "sg_mail",
+        "sg_debug"
+      ]
+    ]
   },
   {
     "id": "sg_mail",

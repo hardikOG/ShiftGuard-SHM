@@ -39,14 +39,20 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-## Step 2: Check that it works (30 seconds)
+## Step 2: Check that it works (about 1 minute)
 
 ```bash
-python tests/test_core.py
+python -m pytest -q tests
 ```
-All six tests should print `ok`. They check that the conformal p-values are uniform, that the
-e-values average to 1, that the false-alarm guarantee holds, and that the fault injector only
-touches the target sensor.
+All 17 tests should pass. They cover three levels:
+- **Statistics** (`tests/test_core.py`): the conformal p-values are uniform, the e-values average to 1,
+  the false-alarm guarantee holds, and the fault injector only touches the target sensor.
+- **Monitor** (`tests/test_system.py`): a trained monitor blames a sensor fault on the right sensor and
+  never on damage, leaves no evidence on the faulty sensor's neighbours, detects and localises damage,
+  labels unseen cold as environment, stays silent on a healthy stream, imputes lost packets, and survives
+  bad control commands.
+- **Live pipeline** (`-m slow`): broker, sensor nodes and edge monitor as separate processes over real
+  MQTT, with 20 % packet loss and a restart of the sensor network.
 
 ## Step 3: Run the research experiment (paper tables and figures)
 
@@ -87,17 +93,37 @@ You can define your own events in a JSON file and pass it with `--events my_even
 python run_demo.py
 ```
 This one command starts these parts:
-- an MQTT broker, written in pure Python, so no Mosquitto install is needed
+- an MQTT broker, written in pure Python, so no Mosquitto install is needed (MQTT on 1883, MQTT-over-WebSocket on 9001)
 - the edge monitor
 - 8 virtual accelerometer nodes and 1 temperature node
-- the dashboard at **http://localhost:8501**
+- the dashboard at **http://localhost:8501**, with a **Live digital twin** tab
+- the digital twin on its own at **http://localhost:8502/twin.html** (best for a projector)
 
 If no trained model exists yet, it trains one first, which takes about 1–3 minutes.
 
-**Demo script (about 3 minutes):**
+### The live digital twin
+![Digital twin during severe damage: the edge localises it to S5–S6 with severity set {Severe}](docs/digital_twin_damage.jpg)
+
+The twin is a virtual workbench, in the spirit of Tinkercad or Wokwi, connected straight to the MQTT
+broker:
+- **The deck moves with the real data.** Each node's latest 20 s window is played back in real time
+  and low-pass filtered, so the deck shows the measured bending (exaggerated). A faulty node visibly bends
+  the deck the wrong way, because the twin draws what the sensors *report*, not the true motion.
+- **Every sensor node is a device you can break.** Click a node to inject drift, noise, spikes, dropout,
+  clipping or a gain error, or to repair it. Its LED shows the edge's verdict, and packets fly to the
+  edge gateway (grey = lost on the radio link and imputed).
+- **Weather and damage controls:** cold snap (snow and ice appear below 0 °C), moderate or severe damage
+  (a crack appears between S5 and S6 when *show injected ground truth* is on), packet loss, pause, and speed.
+- **Virtual DHT22:** a temperature slider that overrides the temperature node, like the Wokwi ESP32.
+- **Oscilloscope** for any node, or all nodes overlaid.
+- **Side panel:** the edge monitor's verdict, health score, all ten e-detectors against their alarm
+  threshold, the measured edge latency per window, and the alert log.
+
+**Demo script (about 3 minutes; works the same from the dashboard sidebar or the twin):**
 1. Show the healthy bridge. The status shows ✅, the health score is near 100 and the evidence curves stay low.
-2. In the sidebar, inject a fault: **Sensor 3 → drift → Inject**. After a few bridge-hours the status
-   becomes 🔧 *Sensor fault — node S3*. There is **no damage alarm**. Point at the per-sensor bar chart, where only S3 is orange.
+2. Inject a fault: in the twin, click **S3 → Calibration drift** (or in the sidebar, **Sensor 3 → drift → Inject**).
+   About 10 bridge-hours later the status becomes 🔧 *Sensor fault — node S3*. There is **no damage alarm**.
+   Point at the evidence meters, where only S3 crosses its threshold. When the fault ends the status goes back to ✅.
 3. Click **Cold snap**. When the temperature drops below anything seen in training, the alarm is
    attributed to 🌡️ *Unprecedented environment*, not to damage.
 4. Click **5 % packet loss**. Lost packets are imputed by the masked-sensor model, which you can see as `*` on the bar chart.
@@ -114,6 +140,8 @@ streamlit run dashboard/app.py
 python iot/control.py fault --kind noise --sensor 6 --hours 48
 python iot/control.py coldsnap --delta -12 --hours 96
 python iot/control.py damage --level 1
+python iot/control.py repair_sensor --sensor 6
+python iot/control.py pause            # or: resume, speed --rate 8, packet_loss --p 0.1
 python iot/control.py clear
 ```
 
@@ -124,9 +152,24 @@ These are the MQTT topics:
 | `shm/bridge01/node/<i>/accel` | one acceleration window per node |
 | `shm/bridge01/env/temperature` | temperature |
 | `shm/bridge01/status` | ShiftGuard output for every window |
-| `shm/bridge01/alert` | a message whenever the attribution changes |
+| `shm/bridge01/alert` | a message whenever the attribution or severity changes (the latest one is retained) |
+| `shm/bridge01/truth` | injected ground truth for each window (evaluation only) |
+| `shm/bridge01/sim/state` | retained: what is currently injected |
 | `shm/bridge01/control` | injection commands |
 | `shm/bridge01/env/override` | an external temperature node |
+
+### Reliability
+Every component can go away and come back without manual intervention:
+
+| What fails | What happens |
+|---|---|
+| A component crashes | `run_demo.py` restarts it, up to 5 times. A restarted edge monitor resumes its database (`--resume`). |
+| The broker is restarted or the network drops | Every node reconnects with back-off and re-subscribes, because subscriptions are made in `on_connect`. |
+| The sensor network restarts (sequence numbers back to 0) | The edge detects the new run and appends to the history without a gap, instead of overwriting it. |
+| Packets are lost on the radio link | Late windows are processed in strict sequence order. Missing sensors are imputed by the masked-sensor model. If fewer than half the sensors arrive, the window is dropped and logged. |
+| A malformed or invalid control command arrives | It is rejected with a log line. The sensor network keeps running. |
+| One window fails to process | It is logged and skipped, and monitoring continues. |
+| Port 1883 is already used by another broker | `run_demo.py` reuses that broker. `iot/broker.py` refuses to start a second one: on Windows, amqtt's `SO_REUSEADDR` would otherwise let two brokers split the clients silently. |
 
 ## Step 5: Email alerts with Node-RED
 
@@ -134,20 +177,30 @@ These are the MQTT topics:
 2. Go to *Menu → Import* and select `iot/nodered_flow.json`.
 3. Open the **email** node. Set the recipient, and set the sender to a Gmail address with an
    [App Password](https://support.google.com/accounts/answer/185833). Then click Deploy.
-4. With `run_demo.py` running, any **STRUCTURAL_DAMAGE** or **SENSOR_FAULT** alert is emailed.
-   Weather and back-to-normal events go only to the debug log.
+4. With `run_demo.py` running, any **STRUCTURAL_DAMAGE** or **SENSOR_FAULT** alert is emailed, including
+   an escalation from Moderate to Severe. Weather and back-to-normal events go only to the debug log. The
+   retained copy of the latest alert is ignored, so restarting Node-RED does not re-send an email.
 
 ## Step 6 (optional): Wokwi ESP32 temperature node
 
-The `iot/wokwi_env_node/` folder contains an ESP32 + DHT22 sketch and its `diagram.json`. Paste
-both into a new ESP32 project on wokwi.com, then add the **PubSubClient** and **DHT sensor library** libraries.
-Wokwi can only reach public brokers, so run the demo with:
-```bash
-python run_demo.py --broker broker.hivemq.com
-```
-Turn the DHT22 temperature knob in Wokwi to create a live cold snap.
+The `iot/wokwi_env_node/` folder contains an ESP32 + DHT22 sketch and its `diagram.json`. The diagram
+also has a green LED that blinks on each publish and a red LED that stays on while MQTT is disconnected.
+1. Paste both files into a new ESP32 project on wokwi.com, then add the **PubSubClient** and **DHT sensor
+   library** libraries.
+2. Set `WOKWI_ID` in the sketch to something unique, for example `sg-hg2026`.
+3. Run the demo with the same id:
+   ```bash
+   python run_demo.py --wokwi-id sg-hg2026
+   ```
 
-**Note:** this sketch was not tested in Wokwi.
+Wokwi runs in the browser and can only reach public brokers. `iot/wokwi_relay.py` forwards **only** the
+ESP32's temperature topic from `broker.hivemq.com` into the local broker. The bridge's sensor data stays on
+your machine, and values outside −50…60 °C, published by strangers, are ignored. Turn the DHT22
+temperature slider in Wokwi to create a live cold snap.
+
+With no internet, the twin's **virtual DHT22** slider does the same thing locally.
+
+**Note:** the relay and the local pipeline are tested. The sketch itself has not been run inside Wokwi yet.
 
 ## Step 7: Use the real Z24 bridge data
 
@@ -217,15 +270,18 @@ shiftguard/            core library
   scenario.py          monitoring timelines with scheduled events
   plots.py             paper figures
 scripts/               run_experiment.py, train_monitor.py, inspect_z24.py
-iot/                   broker, sensor_nodes, edge_monitor, control, Node-RED flow, Wokwi sketch
-dashboard/app.py       Streamlit live dashboard
-run_demo.py            one-command live demo
-tests/                 sanity tests
+iot/                   broker, sensor_nodes, edge_monitor, control, wokwi_relay, Node-RED flow, Wokwi sketch
+dashboard/app.py       Streamlit live dashboard (embeds the twin)
+dashboard/static/      twin.html (live digital twin) + vendored mqtt.js 5.10.4 (MIT)
+run_demo.py            one-command live demo with process supervision
+tests/                 statistics, monitor and live-pipeline tests
 ```
 
 ## Troubleshooting
-- **`Address already in use` on port 1883:** another broker is running. Use it with `--broker localhost` and
-  skip `iot/broker.py`, or pass `--port 1884` to everything.
+- **Port 1883 is already in use:** `run_demo.py` reuses the broker that is running there. To use a separate
+  one, pass `--port 1884 --ws-port 9002` (the twin URL then needs `?ws=9002`).
+- **The twin says "disconnected":** the twin reaches the broker on WebSocket port 9001. Check that
+  `run_demo.py` is running and that nothing else is using port 9001.
 - **The dashboard says "Waiting for the edge monitor":** start `run_demo.py`, or `iot/edge_monitor.py`.
 - **Training is slow:** add `--model ridge`. It is about 10× faster with similar results.
 - **Windows firewall prompt:** allow Python on private networks.

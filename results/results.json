@@ -1,11 +1,11 @@
 {
  "aggregate": {
   "ShiftGuard (proposed)": {
-   "false_alarm_hours": 39.666666666666664,
-   "false_alarm_episodes": 7.333333333333333,
+   "false_alarm_hours": 26.0,
+   "false_alarm_episodes": 7.666666666666667,
    "damage_detection_delay_h": 3.6666666666666665,
    "damage_recall": 0.986904761904762,
-   "fault_correct_attribution": 0.9375,
+   "fault_correct_attribution": 0.9364316239316239,
    "fault_misread_as_damage": 0.0,
    "coldsnap_misread_as_damage": 0.0
   },
@@ -46,29 +46,29 @@
    "coldsnap_misread_as_damage": 0.001984126984126984
   },
   "Ablation: global (not temperature-localised) calibration": {
-   "false_alarm_hours": 117.0,
-   "false_alarm_episodes": 16.333333333333332,
+   "false_alarm_hours": 106.0,
+   "false_alarm_episodes": 16.666666666666668,
    "damage_detection_delay_h": 7.0,
    "damage_recall": 0.9825396825396826,
-   "fault_correct_attribution": 0.94017094017094,
+   "fault_correct_attribution": 0.9385683760683761,
    "fault_misread_as_damage": 0.0,
    "coldsnap_misread_as_damage": 0.06349206349206349
   },
   "Ablation: no temperature conditioning": {
-   "false_alarm_hours": 42.333333333333336,
-   "false_alarm_episodes": 8.333333333333334,
+   "false_alarm_hours": 28.666666666666668,
+   "false_alarm_episodes": 9.333333333333334,
    "damage_detection_delay_h": 4.666666666666667,
    "damage_recall": 0.9857142857142858,
-   "fault_correct_attribution": 0.9417735042735043,
+   "fault_correct_attribution": 0.9380341880341879,
    "fault_misread_as_damage": 0.0010683760683760683,
    "coldsnap_misread_as_damage": 0.0
   },
   "Ablation: no environment monitor": {
-   "false_alarm_hours": 40.333333333333336,
-   "false_alarm_episodes": 7.333333333333333,
+   "false_alarm_hours": 26.666666666666668,
+   "false_alarm_episodes": 7.666666666666667,
    "damage_detection_delay_h": 4.0,
    "damage_recall": 0.9952380952380953,
-   "fault_correct_attribution": 0.9364316239316239,
+   "fault_correct_attribution": 0.9353632478632479,
    "fault_misread_as_damage": 0.0,
    "coldsnap_misread_as_damage": 0.3353174603174603
   }
@@ -78,12 +78,12 @@
    "seed": 0,
    "results": {
     "ShiftGuard (proposed)": {
-     "false_alarm_hours": 27,
+     "false_alarm_hours": 16,
      "false_alarm_episodes": 6,
      "healthy_hours": 7128,
      "damage_detection_delay_h": 3,
      "damage_recall": 0.9964285714285714,
-     "fault_correct_attribution": 0.9310897435897436,
+     "fault_correct_attribution": 0.9294871794871795,
      "fault_misread_as_damage": 0.0,
      "coldsnap_misread_as_damage": 0.0
     },
@@ -128,32 +128,32 @@
      "coldsnap_misread_as_damage": 0.005952380952380952
     },
     "Ablation: global (not temperature-localised) calibration": {
-     "false_alarm_hours": 126,
+     "false_alarm_hours": 111,
      "false_alarm_episodes": 19,
      "healthy_hours": 7128,
      "damage_detection_delay_h": 8,
      "damage_recall": 0.9904761904761905,
-     "fault_correct_attribution": 0.9326923076923077,
+     "fault_correct_attribution": 0.9310897435897436,
      "fault_misread_as_damage": 0.0,
      "coldsnap_misread_as_damage": 0.05952380952380952
     },
     "Ablation: no temperature conditioning": {
-     "false_alarm_hours": 25,
-     "false_alarm_episodes": 5,
+     "false_alarm_hours": 15,
+     "false_alarm_episodes": 8,
      "healthy_hours": 7128,
      "damage_detection_delay_h": 3,
      "damage_recall": 0.9964285714285714,
-     "fault_correct_attribution": 0.9487179487179487,
+     "fault_correct_attribution": 0.9455128205128205,
      "fault_misread_as_damage": 0.0,
      "coldsnap_misread_as_damage": 0.0
     },
     "Ablation: no environment monitor": {
-     "false_alarm_hours": 27,
+     "false_alarm_hours": 16,
      "false_alarm_episodes": 6,
      "healthy_hours": 7128,
      "damage_detection_delay_h": 4,
      "damage_recall": 0.9952380952380953,
-     "fault_correct_attribution": 0.9294871794871795,
+     "fault_correct_attribution": 0.9278846153846154,
      "fault_misread_as_damage": 0.0,
      "coldsnap_misread_as_damage": 0.1488095238095238
     },
@@ -177,12 +177,12 @@
    "seed": 1,
    "results": {
     "ShiftGuard (proposed)": {
-     "false_alarm_hours": 58,
-     "false_alarm_episodes": 10,
+     "false_alarm_hours": 46,
+     "false_alarm_episodes": 11,
      "healthy_hours": 7128,
      "damage_detection_delay_h": 4,
      "damage_recall": 0.9952380952380953,
-     "fault_correct_attribution": 0.9391025641025641,
+     "fault_correct_attribution": 0.9375,
      "fault_misread_as_damage": 0.0,
      "coldsnap_misread_as_damage": 0.0
     },
@@ -227,32 +227,32 @@
      "coldsnap_misread_as_damage": 0.0
     },
     "Ablation: global (not temperature-localised) calibration": {
-     "false_alarm_hours": 145,
+     "false_alarm_hours": 138,
      "false_alarm_episodes": 15,
      "healthy_hours": 7128,
      "damage_detection_delay_h": 4,
      "damage_recall": 0.9952380952380953,
-     "fault_correct_attribution": 0.9391025641025641,
+     "fault_correct_attribution": 0.9375,
      "fault_misread_as_damage": 0.0,
      "coldsnap_misread_as_damage": 0.08928571428571429
     },
     "Ablation: no temperature conditioning": {
-     "false_alarm_hours": 74,
+     "false_alarm_hours": 56,
      "false_alarm_episodes": 14,
      "healthy_hours": 7128,
      "damage_detection_delay_h": 5,
      "damage_recall": 0.9940476190476191,
-     "fault_correct_attribution": 0.9375,
+     "fault_correct_attribution": 0.9358974358974359,
      "fault_misread_as_damage": 0.0016025641025641025,
      "coldsnap_misread_as_damage": 0.0
     },
     "Ablation: no environment monitor": {
-     "false_alarm_hours": 59,
-     "false_alarm_episodes": 10,
+     "false_alarm_hours": 48,
+     "false_alarm_episodes": 11,
      "healthy_hours": 7128,
      "damage_detection_delay_h": 4,
      "damage_recall": 0.9952380952380953,
-     "fault_correct_attribution": 0.9391025641025641,
+     "fault_correct_attribution": 0.9375,
      "fault_misread_as_damage": 0.0,
      "coldsnap_misread_as_damage": 0.39285714285714285
     },
@@ -265,8 +265,8 @@
    },
    "null": {
     "hours": 8760,
-    "shiftguard_alarm_hours": 40,
-    "shiftguard_alarm_episodes": 4,
+    "shiftguard_alarm_hours": 39,
+    "shiftguard_alarm_episodes": 3,
     "baseline5_alarm_hours": 493,
     "baseline5_alarm_episodes": 431,
     "guarantee": "E[time to first false alarm] >= 10000 windows"
@@ -276,7 +276,7 @@
    "seed": 2,
    "results": {
     "ShiftGuard (proposed)": {
-     "false_alarm_hours": 34,
+     "false_alarm_hours": 16,
      "false_alarm_episodes": 6,
      "healthy_hours": 7128,
      "damage_detection_delay_h": 4,
@@ -326,27 +326,27 @@
      "coldsnap_misread_as_damage": 0.0
     },
     "Ablation: global (not temperature-localised) calibration": {
-     "false_alarm_hours": 80,
-     "false_alarm_episodes": 15,
+     "false_alarm_hours": 69,
+     "false_alarm_episodes": 16,
      "healthy_hours": 7128,
      "damage_detection_delay_h": 9,
      "damage_recall": 0.9619047619047619,
-     "fault_correct_attribution": 0.9487179487179487,
+     "fault_correct_attribution": 0.9471153846153846,
      "fault_misread_as_damage": 0.0,
      "coldsnap_misread_as_damage": 0.041666666666666664
     },
     "Ablation: no temperature conditioning": {
-     "false_alarm_hours": 28,
+     "false_alarm_hours": 15,
      "false_alarm_episodes": 6,
      "healthy_hours": 7128,
      "damage_detection_delay_h": 6,
      "damage_recall": 0.9666666666666667,
-     "fault_correct_attribution": 0.9391025641025641,
+     "fault_correct_attribution": 0.9326923076923077,
      "fault_misread_as_damage": 0.0016025641025641025,
      "coldsnap_misread_as_damage": 0.0
     },
     "Ablation: no environment monitor": {
-     "false_alarm_hours": 35,
+     "false_alarm_hours": 16,
      "false_alarm_episodes": 6,
      "healthy_hours": 7128,
      "damage_detection_delay_h": 4,
@@ -364,8 +364,8 @@
    },
    "null": {
     "hours": 8760,
-    "shiftguard_alarm_hours": 25,
-    "shiftguard_alarm_episodes": 4,
+    "shiftguard_alarm_hours": 22,
+    "shiftguard_alarm_episodes": 3,
     "baseline5_alarm_hours": 443,
     "baseline5_alarm_episodes": 383,
     "guarantee": "E[time to first false alarm] >= 10000 windows"

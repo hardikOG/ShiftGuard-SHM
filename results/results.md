@@ -4,14 +4,14 @@ Healthy training year -> monitored year with a cold snap, 5 injected IoT sensor 
 
 | Method | False-alarm h | False-alarm episodes | Damage delay (h) | Damage recall | Faults correctly attributed | Faults called damage | Cold snap called damage |
 |---|---|---|---|---|---|---|---|
-| ShiftGuard (proposed) | 39.7 | 7.3 | 3.7 | 98.7% | 93.8% | 0.0% | 0.0% |
+| ShiftGuard (proposed) | 26 | 7.7 | 3.7 | 98.7% | 93.6% | 0.0% | 0.0% |
 | Per-window AE + conformal 5% | 347 | 314.7 | 4 | 67.6% | 0.0% | 86.1% | 36.1% |
 | Per-window AE + conformal 0.1% | 7.7 | 3 | 326.3 | 43.8% | 0.0% | 70.3% | 17.3% |
 | Ablation: per-window conformal 5% (no e-detector) | 351 | 328 | 0 | 86.7% | 0.0% | 9.2% | 31.9% |
 | Ablation: no sensor masking | 40.7 | 7.3 | 3.7 | 98.7% | 3.4% | 90.9% | 0.2% |
-| Ablation: global (not temperature-localised) calibration | 117 | 16.3 | 7 | 98.3% | 94.0% | 0.0% | 6.3% |
-| Ablation: no temperature conditioning | 42.3 | 8.3 | 4.7 | 98.6% | 94.2% | 0.1% | 0.0% |
-| Ablation: no environment monitor | 40.3 | 7.3 | 4 | 99.5% | 93.6% | 0.0% | 33.5% |
+| Ablation: global (not temperature-localised) calibration | 106 | 16.7 | 7 | 98.3% | 93.9% | 0.0% | 6.3% |
+| Ablation: no temperature conditioning | 28.7 | 9.3 | 4.7 | 98.6% | 93.8% | 0.1% | 0.0% |
+| Ablation: no environment monitor | 26.7 | 7.7 | 4 | 99.5% | 93.5% | 0.0% | 33.5% |
 
 ## Severity stage (conformal prediction sets, after a damage alarm)
 
@@ -21,7 +21,7 @@ Healthy training year -> monitored year with a cold snap, 5 injected IoT sensor 
 
 ## Validity check: healthy-only year (no events at all)
 
-- ShiftGuard alarm episodes per year: 4.00 (30.0 alarm-hours)
+- ShiftGuard alarm episodes per year: 3.33 (28.7 alarm-hours)
 - Per-window 5% baseline alarm episodes per year: 390.3 (444 alarm-hours)
 - Design guarantee: E[time to first false alarm] >= 10000 windows (= 1.14 years at 1 window/hour)
 
