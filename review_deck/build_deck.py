@@ -10,7 +10,7 @@ from lxml import etree
 
 A = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
 DATE = "October 2026"
-TWIN_IMG = "../docs/live_bridge_damage.png"
+TWIN_IMG = "../docs/screenshots/4_damage_cropped.png"
 TIMELINE_IMG = "../results/figures/timeline.png"
 
 prs = Presentation("structure.pptx")

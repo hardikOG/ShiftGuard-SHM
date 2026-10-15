@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.2.0
+- **Simpler UI.**
+  - Live bridge page: one verdict, the bridge, and three buttons; extras are under *More controls*.
+  - Dashboard: opens on the live bridge; one chart and the alerts are under *Details*.
+- **Real Z24 results** (both models, 3 seeds) in `results_z24*/` and the paper's Table III. They use the 8 channels shared by all Z24 sensor setups (`--z24-setup all --z24-channels ...`).
+- **Fixes:**
+  - Hours under a temperature override (Wokwi DHT22 / slider) are now labelled as an environment event. Before, they counted as false alarms.
+  - The dashboard counts false alarms only on settled healthy hours, the same rule as the live bridge page.
+- **Paper:** IEEE LaTeX source in `paper/latex/` with review fixes (Kullaa 2011 reference, Z24 citations, measured c = 10^5 trade-off, Figure 3 label order) and a code-availability link.
+- **Docs:**
+  - a short README with live screenshots; `scripts/take_screenshots.py` regenerates them
+  - the full guide is in `docs/GUIDE.md`
+  - the Review-2 deck is in `review_deck/`
+
 ## 1.1.0
 
 ### Method fix (changes the paper numbers)

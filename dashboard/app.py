@@ -17,6 +17,7 @@ DB = os.environ.get("SHM_DB", os.path.join(ROOT, "state", "live.db"))
 TWIN_URL = os.environ.get("SHM_TWIN_URL", "http://localhost:8502/twin.html")
 WS_PORT = os.environ.get("SHM_WS_PORT", "9001")
 HISTORY_HOURS = 400
+SETTLE_HOURS = 24
 VERDICT = {
     "NORMAL": ("✅", "Bridge is healthy", "#18a058"),
     "ENVIRONMENT": ("🌡️", "Unusual weather — not damage", "#2a78d6"),
@@ -38,14 +39,19 @@ def details():
     try:
         w = pd.read_sql_query(f"SELECT * FROM windows ORDER BY seq DESC LIMIT {HISTORY_HOURS}", con).iloc[::-1]
         alerts = pd.read_sql_query("SELECT t_hours AS 'bridge hour', message FROM alerts ORDER BY id DESC LIMIT 10", con)
-        totals = pd.read_sql_query("SELECT SUM(label!='NORMAL' AND truth='healthy') fa, "
-                                   "SUM(baseline_alarm AND truth='healthy') bfa, AVG(proc_ms) ms FROM windows", con).iloc[0]
+        hist = pd.read_sql_query("SELECT t_hours, label, truth, baseline_alarm, proc_ms FROM windows ORDER BY seq", con)
     except (sqlite3.Error, pd.errors.DatabaseError):
         st.info("Waiting for data …"); return
     finally:
         con.close()
     if w.empty:
         st.info("Waiting for data …"); return
+    # False alarms are counted on settled healthy hours only: right after a repair the evidence needs a
+    # few hours to decay, which is recovery, not a false alarm (same rule as the live bridge page).
+    event_t = hist.t_hours.where(hist.truth.fillna("healthy") != "healthy").ffill()
+    settled = (hist.truth == "healthy") & ~((hist.t_hours - event_t) <= SETTLE_HOURS)
+    totals = pd.Series(dict(fa=int((settled & (hist.label != "NORMAL")).sum()),
+                            bfa=int((settled & (hist.baseline_alarm == 1)).sum()), ms=hist.proc_ms.mean()))
     last = w.iloc[-1]
     icon, text, col = VERDICT.get(last.label, ("", last.label, "#6b7380"))
     st.markdown(f"<div style='padding:16px 20px;border-radius:12px;border-left:10px solid {col};"

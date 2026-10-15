@@ -180,7 +180,8 @@ def main():
                 cold = st.cold
                 if cold and cold[1] <= t < cold[2]:
                     T += cold[0] * np.sin(np.pi * (t - cold[1]) / (cold[2] - cold[1]))
-                if st.override_temp is not None and time.time() - st.override_at < OVERRIDE_TTL_S:
+                overridden = st.override_temp is not None and time.time() - st.override_at < OVERRIDE_TTL_S
+                if overridden:
                     T = st.override_temp
                 expired = [f for f in st.faults if f["until"] <= t]
                 st.faults = [f for f in st.faults if f["until"] > t]
@@ -191,6 +192,8 @@ def main():
             truth = "healthy"
             if cold and cold[1] <= t < cold[2]:
                 truth = "env-coldsnap"
+            elif overridden:                  # external temperature node (Wokwi DHT22 / twin slider)
+                truth = "env-override"
             for f in faults:
                 a = inject(a, f["sensor"], f["kind"], rng, severity=f["severity"], progress=(t - f["start"]) / 24)
                 truth = f"fault-s{f['sensor'] + 1}-{f['kind']}"
