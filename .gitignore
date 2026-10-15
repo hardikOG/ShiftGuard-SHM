@@ -5,3 +5,9 @@ state/
 models/
 data/
 .pytest_cache/
+review_deck/.dv/
+review_deck/un/
+review_deck/*_png/
+review_deck/*.jpg
+review_deck/structure.pptx
+review_deck/template.md
