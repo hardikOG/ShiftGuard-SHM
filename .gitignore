@@ -11,3 +11,8 @@ review_deck/*_png/
 review_deck/*.jpg
 review_deck/structure.pptx
 review_deck/template.md
+.tools/
+paper/latex/*.png
+paper/latex/*.aux
+paper/latex/*.log
+paper/latex/*.xdv

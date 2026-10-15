@@ -1,3 +1,5 @@
+> **Superseded:** the submission version is `paper/latex/main.tex` (IEEE conference format, compiled to `paper/latex/main.pdf`). It adds the Kullaa (2011) related work, the measured c = 10^5 trade-off, the Z24 event-injection note, the sigma definition, the CPU spec and a code-availability statement.
+
 # Damage, Weather, or a Broken Sensor? Anytime-Valid Alarm Attribution for Software-Defined AIoT Structural Health Monitoring
 
 *Hardik Grover, Advait Anand, Akash Kumar, Yograj, [member 5] — Dept. of CTECH, SRM Institute of Science and Technology, Kattankulathur. Supervisor: Dr. P. Saravanan*
